@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>首借交易额-24H</title>
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Microsoft YaHei', 'SimHei', sans-serif;
+            background: #fff;
+            padding: 40px;
+        }
+        .report-container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .page-title {
+            font-size: 24px;
+            font-weight: bold;
+            color: #8B4513;
+            margin-bottom: 4px;
+        }
+        .title-underline {
+            height: 3px;
+            background: linear-gradient(to right, #DAA520, #F0E68C);
+            margin-bottom: 20px;
+            width: 100%;
+        }
+        .summary-text {
+            font-size: 16px;
+            color: #333;
+            line-height: 1.8;
+            margin-bottom: 20px;
+        }
+        #chart-container {
+            width: 100%;
+            height: 520px;
+        }
+        .footer-bar {
+            height: 8px;
+            background: linear-gradient(to right, #C0392B, #F5B7B1, #FADBD8);
+            margin-top: 30px;
+            border-radius: 2px;
+        }
+    </style>
+</head>
+<body>
+    <div class="report-container">
+        <div class="page-title">获客规模指标：1-7评级首借交易 By客群</div>
+        <div class="title-underline"></div>
+        <div class="summary-text">2月1-7评级首借交易（24h口径）总额4.80亿元，环比减少1.6亿，下降25.1%</div>
+        <div id="chart-container"></div>
+        <div class="footer-bar"></div>
+    </div>
+    <script>
+        var chart = echarts.init(document.getElementById('chart-container'));
+        var months = ["Jan-25", "Feb-25", "Mar-25", "Apr-25", "May-25", "Jun-25", "Jul-25", "Aug-25", "Sep-25", "Oct-25", "Nov-25", "Dec-25", "Jan-26", "Feb-26"];
+        var categories = ["当月首登M0", "存量首登M0", "初审M1+", "非初审", "API回流"];
+        var colors = {"当月首登M0": "#4472C4", "存量首登M0": "#ED7D31", "初审M1+": "#A5A5A5", "非初审": "#FFC000", "API回流": "#5B9BD5"};
+        var lineColor = '#FF0000';
+
+        var data = {"当月首登M0": [9.0014, 5.3494, 5.4435, 5.886, 7.2146, 7.7785, 6.7996, 8.1669, 8.2364, 6.2722, 4.9737, 4.0954, 3.839, 3.0237], "存量首登M0": [2.5029, 1.5897, 1.6374, 1.6442, 1.9682, 2.1313, 1.8572, 2.1274, 2.3266, 1.8159, 1.4393, 1.2055, 1.048, 0.8935], "初审M1+": [1.8506, 1.2657, 1.3067, 1.4146, 1.4375, 1.4776, 1.426, 1.5751, 1.694, 1.6043, 1.4047, 1.1451, 1.0537, 0.6763], "非初审": [1.2154, 1.2138, 1.9481, 1.8757, 1.4476, 1.329, 0.8684, 0.9006, 0.7712, 1.0364, 1.3718, 0.7028, 0.4325, 0.2094], "API回流": [0.3885, 0.2722, 0.311, 0.2912, 0.357, 0.3311, 0.2759, 0.2904, 0.234, 0.201, 0.1386, 0.0703, 0.0389, 0.0008], "总计": [14.9587, 9.6909, 10.6467, 11.1116, 12.4248, 13.0474, 11.227, 13.0604, 13.2622, 10.9298, 9.3281, 7.2192, 6.412, 4.8037]};
+        var labels = {"当月首登M0": ["9.00亿", "5.35亿", "5.44亿", "5.89亿", "7.21亿", "7.78亿", "6.80亿", "8.17亿", "8.24亿", "6.27亿", "4.97亿", "4.10亿", "3.84亿", "3.02亿"], "存量首登M0": ["2.50亿", "1.59亿", "1.64亿", "1.64亿", "1.97亿", "2.13亿", "1.86亿", "2.13亿", "2.33亿", "1.82亿", "1.44亿", "1.21亿", "1.05亿", "0.89亿"], "初审M1+": ["1.85亿", "1.27亿", "1.31亿", "1.41亿", "1.44亿", "1.48亿", "1.43亿", "1.58亿", "1.69亿", "1.60亿", "1.40亿", "1.15亿", "1.05亿", "0.68亿"], "非初审": ["1.22亿", "1.21亿", "1.95亿", "1.88亿", "1.45亿", "1.33亿", "0.87亿", "0.90亿", "0.77亿", "1.04亿", "1.37亿", "0.70亿", "0.43亿", "0.21亿"], "API回流": ["0.39亿", "0.27亿", "0.31亿", "0.29亿", "0.36亿", "0.33亿", "0.28亿", "0.29亿", "0.23亿", "0.20亿", "0.14亿", "0.07亿", "0.04亿", ""], "总计": ["14.96亿", "9.69亿", "10.65亿", "11.11亿", "12.42亿", "13.05亿", "11.23亿", "13.06亿", "13.26亿", "10.93亿", "9.33亿", "7.22亿", "6.41亿", "4.80亿"]};
+
+        var series = [];
+
+        // Stacked bars
+        categories.forEach(function(cat, idx) {
+            series.push({
+                name: cat,
+                type: 'bar',
+                stack: 'total',
+                barWidth: '45%',
+                itemStyle: { color: colors[cat] },
+                data: data[cat],
+                label: {
+                    show: true,
+                    position: 'inside',
+                    formatter: function(params) {
+                        return labels[cat][params.dataIndex];
+                    },
+                    fontSize: 11,
+                    color: '#333',
+                    fontWeight: 'bold'
+                }
+            });
+        });
+
+        // Total line
+        series.push({
+            name: '总计',
+            type: 'line',
+            data: data['总计'],
+            symbol: 'circle',
+            symbolSize: 6,
+            lineStyle: {
+                color: lineColor,
+                width: 3
+            },
+            itemStyle: {
+                color: lineColor
+            },
+            label: {
+                show: true,
+                position: 'top',
+                formatter: function(params) {
+                    return labels['总计'][params.dataIndex];
+                },
+                fontSize: 12,
+                color: lineColor,
+                fontWeight: 'bold'
+            },
+            z: 10
+        });
+
+        var option = {
+            title: {
+                text: '首借交易额-24H',
+                left: 'center',
+                top: 0,
+                textStyle: {
+                    fontSize: 16,
+                    fontWeight: 'bold',
+                    color: '#333'
+                }
+            },
+            tooltip: {
+                trigger: 'axis',
+                axisPointer: { type: 'shadow' },
+                formatter: function(params) {
+                    var html = '<b>' + params[0].axisValue + '</b><br/>';
+                    var total = 0;
+                    params.forEach(function(p) {
+                        if (p.seriesName !== '总计') {
+                            html += p.marker + ' ' + p.seriesName + ': ' + p.value.toFixed(2) + '亿<br/>';
+                            total += p.value;
+                        }
+                    });
+                    html += '<b>总计: ' + total.toFixed(2) + '亿</b>';
+                    return html;
+                }
+            },
+            legend: {
+                bottom: 0,
+                data: categories.concat(['总计']),
+                itemWidth: 14,
+                itemHeight: 10,
+                textStyle: { fontSize: 12 }
+            },
+            grid: {
+                left: '3%',
+                right: '3%',
+                top: 50,
+                bottom: 50,
+                containLabel: true
+            },
+            xAxis: {
+                type: 'category',
+                data: months,
+                axisLabel: {
+                    fontSize: 11,
+                    color: '#666'
+                },
+                axisTick: { alignWithLabel: true }
+            },
+            yAxis: {
+                type: 'value',
+                axisLabel: {
+                    formatter: function(v) { return v.toFixed(0) + '亿'; },
+                    fontSize: 11,
+                    color: '#666'
+                },
+                splitLine: {
+                    lineStyle: { color: '#eee' }
+                }
+            },
+            series: series
+        };
+
+        chart.setOption(option);
+        window.addEventListener('resize', function() { chart.resize(); });
+    </script>
+</body>
+</html>

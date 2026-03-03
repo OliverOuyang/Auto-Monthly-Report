@@ -1,0 +1,9 @@
+# Excel temp files
+~$*
+# Windows temp
+nul
+# Python cache
+__pycache__/
+*.pyc
+# Temp chart images
+export/PPT/chart_temp.png
