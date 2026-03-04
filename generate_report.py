@@ -48,14 +48,25 @@ def main(
 
     for meta in meta_list:
         indicator_id = meta["indicator_id"]
+        data_source_type = meta.get('data_source_type', 'single')
 
-        pivot = excel_reader.read_pivot(excel_path, indicator_id)
-        if pivot is None:
-            raw_sheet = meta.get("raw_sheet")
-            if not raw_sheet:
-                raise ValueError(f"Missing raw_sheet for indicator: {indicator_id}")
-            raw = excel_reader.read_raw(excel_path, raw_sheet)
-            pivot = data_processor.build_pivot(raw, meta)
+        # 根据数据源类型选择处理方式
+        if data_source_type == 'derived':
+            # 派生类型：调用专用 builder
+            builder_name = f"build_{indicator_id}_pivot"
+            builder = getattr(data_processor, builder_name, None)
+            if builder is None:
+                raise ValueError(f"未找到派生数据处理器: {builder_name}")
+            pivot = builder(excel_path, meta)
+        else:
+            # 单表类型：原有逻辑
+            pivot = excel_reader.read_pivot(excel_path, indicator_id)
+            if pivot is None:
+                raw_sheet = meta.get("raw_sheet")
+                if not raw_sheet:
+                    raise ValueError(f"Missing raw_sheet for indicator: {indicator_id}")
+                raw = excel_reader.read_raw(excel_path, raw_sheet)
+                pivot = data_processor.build_pivot(raw, meta)
 
         lines = analyzer.analyze(pivot, meta)
         chart_path = chart_renderer.render(pivot, meta, styles, export_ppt_dir)

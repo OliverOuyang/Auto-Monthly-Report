@@ -11,10 +11,10 @@ from pathlib import Path
 from config.chart_types import CHART_RENDERERS
 
 
-# 全局字体设置
-FONT_PATH = r'C:\Windows\Fonts\msyh.ttc'
+# 全局字体设置（改为华文楷体）
+FONT_PATH = r'C:\Windows\Fonts\simkai.ttf'  # 华文楷体
 FONT_PROP = FontProperties(fname=FONT_PATH)
-plt.rcParams['font.sans-serif'] = ['Microsoft YaHei']
+plt.rcParams['font.sans-serif'] = ['STKaiti', 'KaiTi']
 plt.rcParams['axes.unicode_minus'] = False
 
 

@@ -103,3 +103,13 @@ def read_raw(excel_path: str, sheet_name: str) -> pd.DataFrame:
     """读取原数据 sheet。"""
     df = pd.read_excel(excel_path, sheet_name=sheet_name)
     return df
+
+
+def read_manual_inputs(excel_path: str) -> pd.DataFrame:
+    """读取手动输入 sheet（_manual_inputs），返回 DataFrame。"""
+    try:
+        df = pd.read_excel(excel_path, sheet_name='_manual_inputs')
+        return df
+    except ValueError:
+        # 如果 sheet 不存在，返回空 DataFrame
+        return pd.DataFrame()
