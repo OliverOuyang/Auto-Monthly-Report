@@ -91,64 +91,115 @@ indicators:
     data_source_type: derived
 
   # ============================================================================
-  # P11, P15, P19: 三个渠道转化总览
+  # P11: 腾讯渠道转化总览 (分为左右两个子图)
   # ============================================================================
-  - indicator_id: channel_overview_tencent
+  - indicator_id: channel_overview_tencent_cost
     slide_order: 11
     chart_type: dual_line_with_bar
-    chart_title: 腾讯渠道转化总览
-    slide_title: 渠道转化：腾讯渠道整体表现
+    chart_title: 花费及成本
+    slide_title: 腾讯总览：质量成本达成良好;稳定质量,探索成本继续压降的可能性
     raw_sheet: 4_转化
     channel_filter: 腾讯
     categories:
       - 日耗
       - T0CPS_24h
-      - 1-7平均额度
-      - 进件1-3通过率
-      - 进件1-7通过率
     show_total_line: false
     unit_divisor: 1.0
     analysis_template: channel_overview
     data_source_type: derived
-    use_llm_analysis: true
+    is_left_chart: true  # 标记为左图
 
-  - indicator_id: channel_overview_douyin
+  - indicator_id: channel_overview_tencent_quality
+    slide_order: 11
+    chart_type: bar_multi_line
+    chart_title: 质量表现
+    slide_title: ""  # 使用相同slide,不重复标题
+    raw_sheet: 4_转化
+    channel_filter: 腾讯
+    categories:
+      - 1-7额度
+      - 过件率1-3_排年龄
+      - 过件率1-7_排年龄
+    show_total_line: false
+    unit_divisor: 1.0
+    analysis_template: ""  # 不生成分析文字
+    data_source_type: derived
+    is_right_chart: true  # 标记为右图
+    merge_with_prev: true  # 合并到上一个slide
+
+  # ============================================================================
+  # P15: 抖音渠道转化总览
+  # ============================================================================
+  - indicator_id: channel_overview_douyin_cost
     slide_order: 15
     chart_type: dual_line_with_bar
-    chart_title: 抖音渠道转化总览
-    slide_title: 渠道转化：抖音渠道整体表现
+    chart_title: 抖音核心指标
+    slide_title: 抖音总览：规模不足、指标波动较大;短期适当放开排除、提出价方式提升规模
     raw_sheet: 4_转化
     channel_filter: 抖音
     categories:
       - 日耗
       - T0CPS_24h
-      - 1-7平均额度
-      - 进件1-3通过率
-      - 进件1-7通过率
     show_total_line: false
     unit_divisor: 1.0
     analysis_template: channel_overview
     data_source_type: derived
-    use_llm_analysis: true
+    is_left_chart: true
 
-  - indicator_id: channel_overview_jingzhun
+  - indicator_id: channel_overview_douyin_quality
+    slide_order: 15
+    chart_type: bar_multi_line
+    chart_title: 抖音质量表现
+    slide_title: ""
+    raw_sheet: 4_转化
+    channel_filter: 抖音
+    categories:
+      - 1-7额度
+      - 过件率1-3_排年龄
+      - 过件率1-7_排年龄
+    show_total_line: false
+    unit_divisor: 1.0
+    analysis_template: ""
+    data_source_type: derived
+    is_right_chart: true
+    merge_with_prev: true
+
+  # ============================================================================
+  # P19: 精准营销渠道转化总览
+  # ============================================================================
+  - indicator_id: channel_overview_jingzhun_cost
     slide_order: 19
     chart_type: dual_line_with_bar
-    chart_title: 精准营销渠道转化总览
-    slide_title: 渠道转化：精准营销渠道整体表现
+    chart_title: 精准核心指标
+    slide_title: 精准总览：质量提升显著风险表现有待观测,成本仍需压降
     raw_sheet: 4_转化
     channel_filter: 精准营销
     categories:
       - 日耗
       - T0CPS_24h
-      - 1-7平均额度
-      - 进件1-3通过率
-      - 进件1-7通过率
     show_total_line: false
     unit_divisor: 1.0
     analysis_template: channel_overview
     data_source_type: derived
-    use_llm_analysis: true
+    is_left_chart: true
+
+  - indicator_id: channel_overview_jingzhun_quality
+    slide_order: 19
+    chart_type: bar_multi_line
+    chart_title: 精准质量表现
+    slide_title: ""
+    raw_sheet: 4_转化
+    channel_filter: 精准营销
+    categories:
+      - 1-7额度
+      - 过件率1-3_排年龄
+      - 过件率1-7_排年龄
+    show_total_line: false
+    unit_divisor: 1.0
+    analysis_template: ""
+    data_source_type: derived
+    is_right_chart: true
+    merge_with_prev: true
 
   # ============================================================================
   # P12-14: 腾讯渠道详细分析

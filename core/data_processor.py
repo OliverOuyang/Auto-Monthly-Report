@@ -279,6 +279,38 @@ def build_channel_overview_jingzhun_pivot(excel_path: str, meta: dict) -> pd.Dat
     return _build_channel_overview_pivot(excel_path, meta, channel='精准营销')
 
 
+# ── 新增: 分离的cost和quality builder函数 ──
+
+def build_channel_overview_tencent_cost_pivot(excel_path: str, meta: dict) -> pd.DataFrame:
+    """构建腾讯渠道-花费及成本图表（P11左图）。"""
+    return _build_channel_overview_pivot(excel_path, meta, channel='腾讯')
+
+
+def build_channel_overview_tencent_quality_pivot(excel_path: str, meta: dict) -> pd.DataFrame:
+    """构建腾讯渠道-质量表现图表（P11右图）。"""
+    return _build_channel_overview_pivot(excel_path, meta, channel='腾讯')
+
+
+def build_channel_overview_douyin_cost_pivot(excel_path: str, meta: dict) -> pd.DataFrame:
+    """构建抖音渠道-花费及成本图表（P15左图）。"""
+    return _build_channel_overview_pivot(excel_path, meta, channel='抖音')
+
+
+def build_channel_overview_douyin_quality_pivot(excel_path: str, meta: dict) -> pd.DataFrame:
+    """构建抖音渠道-质量表现图表（P15右图）。"""
+    return _build_channel_overview_pivot(excel_path, meta, channel='抖音')
+
+
+def build_channel_overview_jingzhun_cost_pivot(excel_path: str, meta: dict) -> pd.DataFrame:
+    """构建精准营销渠道-花费及成本图表（P19左图）。"""
+    return _build_channel_overview_pivot(excel_path, meta, channel='精准营销')
+
+
+def build_channel_overview_jingzhun_quality_pivot(excel_path: str, meta: dict) -> pd.DataFrame:
+    """构建精准营销渠道-质量表现图表（P19右图）。"""
+    return _build_channel_overview_pivot(excel_path, meta, channel='精准营销')
+
+
 def _build_channel_overview_pivot(excel_path: str, meta: dict, channel: str) -> pd.DataFrame:
     """
     内部函数：构建指定渠道的转化总览。
@@ -289,6 +321,7 @@ def _build_channel_overview_pivot(excel_path: str, meta: dict, channel: str) -> 
         channel: 渠道名称（腾讯/抖音/精准营销）
     """
     report_month = pd.Timestamp(meta['report_month'] + '-01')
+    categories = meta.get('categories', [])
 
     # 读取 4_转化 表
     df = pd.read_excel(excel_path, sheet_name='4_转化')
@@ -320,28 +353,47 @@ def _build_channel_overview_pivot(excel_path: str, meta: dict, channel: str) -> 
     }
     df_monthly = df_channel.groupby('mon').agg(agg_dict)
 
-    # 计算派生指标
-    result_dict = {}
+    # 计算所有可能的派生指标
+    all_indicators = {}
 
     # 日耗（万元）
-    result_dict['日耗'] = (df_monthly['business_fee'] / df_monthly['days'] / 10000).replace(
+    all_indicators['日耗'] = (df_monthly['business_fee'] / df_monthly['days'] / 10000).replace(
         [np.inf, -np.inf], np.nan).fillna(0)
 
     # T0CPS_24h
-    result_dict['T0CPS_24h'] = (df_monthly['business_fee'] / df_monthly['t0_loan_amount_24h']).replace(
+    all_indicators['T0CPS_24h'] = (df_monthly['business_fee'] / df_monthly['t0_loan_amount_24h']).replace(
         [np.inf, -np.inf], np.nan).fillna(0)
 
     # 1-7平均额度（元）
-    result_dict['1-7平均额度'] = (df_monthly['to_adt_credit_lmt'] / df_monthly['t0_adt_cnt']).replace(
+    all_indicators['1-7平均额度'] = (df_monthly['to_adt_credit_lmt'] / df_monthly['t0_adt_cnt']).replace(
         [np.inf, -np.inf], np.nan).fillna(0)
+
+    # 1-7额度 (与1-7平均额度相同,但列名不同)
+    all_indicators['1-7额度'] = all_indicators['1-7平均额度']
 
     # 进件1-3通过率
-    result_dict['进件1-3通过率'] = (df_monthly['t0_safe_adt_cnt'] / df_monthly['t0_ato_cnt_age_refuse']).replace(
+    all_indicators['进件1-3通过率'] = (df_monthly['t0_safe_adt_cnt'] / df_monthly['t0_ato_cnt_age_refuse']).replace(
         [np.inf, -np.inf], np.nan).fillna(0)
 
+    # 过件率1-3_排年龄 (与进件1-3通过率相同)
+    all_indicators['过件率1-3_排年龄'] = all_indicators['进件1-3通过率']
+
     # 进件1-7通过率
-    result_dict['进件1-7通过率'] = (df_monthly['t0_adt_cnt'] / df_monthly['t0_ato_cnt_age_refuse']).replace(
+    all_indicators['进件1-7通过率'] = (df_monthly['t0_adt_cnt'] / df_monthly['t0_ato_cnt_age_refuse']).replace(
         [np.inf, -np.inf], np.nan).fillna(0)
+
+    # 过件率1-7_排年龄 (与进件1-7通过率相同)
+    all_indicators['过件率1-7_排年龄'] = all_indicators['进件1-7通过率']
+
+    # 根据categories筛选需要的指标
+    result_dict = {}
+    for cat in categories:
+        if cat in all_indicators:
+            result_dict[cat] = all_indicators[cat]
+        else:
+            # 如果找不到,警告并填充0
+            print(f"Warning: indicator '{cat}' not found for channel {channel}")
+            result_dict[cat] = pd.Series(0, index=df_monthly.index)
 
     # 构建结果
     result = pd.DataFrame(result_dict, index=df_monthly.index)

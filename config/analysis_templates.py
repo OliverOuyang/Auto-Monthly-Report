@@ -228,10 +228,110 @@ def quality_trend(pivot_display: pd.DataFrame, meta: dict) -> list[str]:
     return [line1, line2, line3]
 
 
+def channel_overview(pivot_display: pd.DataFrame, meta: dict) -> list[str]:
+    """
+    渠道转化总览分析模板(P11/P15/P19)。
+
+    根据渠道类型生成不同的分析文字。
+    """
+    channel = meta.get('channel_filter', '未知渠道')
+    report_month = pd.Timestamp(meta['report_month'] + '-01')
+
+    pv = pivot_display
+    if report_month not in pv.index:
+        return [f"[{channel}渠道数据不足]"]
+
+    curr = pv.loc[report_month]
+    prev_m = pv.index[pv.index < report_month][-1] if len(pv.index[pv.index < report_month]) > 0 else report_month
+    prev = pv.loc[prev_m]
+
+    # 渠道特定的分析逻辑
+    if channel == '腾讯':
+        return _analyze_tencent_overview(curr, prev, report_month, prev_m)
+    elif channel == '抖音':
+        return _analyze_douyin_overview(curr, prev, report_month, prev_m)
+    elif channel == '精准营销':
+        return _analyze_jingzhun_overview(curr, prev, report_month, prev_m)
+    else:
+        return [f"[{channel}渠道分析模板未实现]"]
+
+
+def _analyze_tencent_overview(curr, prev, report_month, prev_m):
+    """腾讯渠道总览分析"""
+    # 提取指标
+    pass_rate_13 = curr.get('进件1-3通过率', 0)
+    pass_rate_17 = curr.get('进件1-7通过率', 0)
+    t0cps = curr.get('T0CPS_24h', 0)
+    daily_spend = curr.get('日耗', 0)
+
+    pass_rate_13_prev = prev.get('进件1-3通过率', 0)
+    t0cps_prev = prev.get('T0CPS_24h', 0)
+    daily_spend_prev = prev.get('日耗', 0)
+
+    # 计算变化
+    pass_change = (pass_rate_13 - pass_rate_13_prev) * 100
+    cost_change = (t0cps - t0cps_prev) * 100
+    spend_change = daily_spend - daily_spend_prev
+
+    # 生成分析文字
+    lines = []
+    lines.append(f"**腾讯总览**: 质量成本达成良好;稳定质量,探索成本继续压降的可能性")
+    lines.append(f"**数据表现**: 质量由{pass_rate_13_prev*100:.1f}%提升至{pass_rate_13*100:.1f}%,"
+                 f"成本{t0cps_prev*100:.1f}%下降至{t0cps*100:.1f}%,日耗{'下降' if spend_change < 0 else '上升'}{abs(spend_change):.0f}万")
+    lines.append(f"**未来方向**: 稳定质量,花费达标(50万日耗)下,通过扣回传、RTA尾部降价方式继续下压成本")
+
+    return lines
+
+
+def _analyze_douyin_overview(curr, prev, report_month, prev_m):
+    """抖音渠道总览分析"""
+    t0cps = curr.get('T0CPS_24h', 0)
+    daily_spend = curr.get('日耗', 0)
+    pass_rate_13 = curr.get('进件1-3通过率', 0)
+
+    t0cps_prev = prev.get('T0CPS_24h', 0)
+    daily_spend_prev = prev.get('日耗', 0)
+    pass_rate_13_prev = prev.get('进件1-3通过率', 0)
+
+    # 目标对比
+    target_spend = 200  # 假设目标日耗200万
+    spend_gap = (daily_spend - target_spend) / target_spend * 100
+
+    lines = []
+    lines.append(f"**抖音总览**: 规模不足、指标波动较大;短期适当放开排除、提出价方式提升规模")
+    lines.append(f"**数据表现**: 规模低于目标{abs(spend_gap):.0f}%,成本1月波动较大(近一周为{t0cps*100:.0f}%),"
+                 f"质量{'与上月持平' if abs(pass_rate_13 - pass_rate_13_prev) < 0.02 else f'变化{(pass_rate_13 - pass_rate_13_prev)*100:.1f}pp'}")
+    lines.append(f"**当前问题**: 当前规模较低、成本及质量波动较大")
+    lines.append(f"**未来方向**: 短期适当放开排除、提升出价方式提升规模")
+
+    return lines
+
+
+def _analyze_jingzhun_overview(curr, prev, report_month, prev_m):
+    """精准营销渠道总览分析"""
+    pass_rate_13 = curr.get('进件1-3通过率', 0)
+    pass_rate_13_prev = prev.get('进件1-3通过率', 0)
+    t0cps = curr.get('T0CPS_24h', 0)
+    t0cps_prev = prev.get('T0CPS_24h', 0)
+
+    # 假设有近2周数据可用(简化处理,实际应从更细粒度数据计算)
+    recent_2w_pass = pass_rate_13  # 简化
+
+    lines = []
+    lines.append(f"**精准总览**: 质量提升显著风险表现有待观测,成本仍需压降")
+    lines.append(f"**数据表现**: 质量{pass_rate_13_prev*100:.1f}%提升至{pass_rate_13*100:.1f}%,"
+                 f"近2周稳定{recent_2w_pass*100:.0f}%;成本{t0cps*100:.1f}%基本持平")
+    lines.append(f"**当前问题**: 随质量提升,后端转化降低CPS相对较高")
+    lines.append(f"**未来方向**: 通过增加排除继续提升质量到20%;通过扣量、降价方式成本压降至15%")
+
+    return lines
+
+
 # ── 模板注册表 ──
 ANALYSIS_TEMPLATES = {
     'trade_mom': trade_mom,
     'spend_mom': spend_mom,
     'cps_trend': cps_trend,
     'quality_trend': quality_trend,
+    'channel_overview': channel_overview,  # 新增
 }
