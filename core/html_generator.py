@@ -158,11 +158,125 @@ def _build_bar_multi_line_option(pivot_d, meta, styles):
     }
 
 
+def _build_single_line_option(pivot_d, meta, styles):
+    """构建单折线图的 ECharts option（复用dual_line逻辑，只取第一个category）"""
+    # 简化：直��复用dual_line builder
+    return _build_dual_line_option(pivot_d, meta, styles)
+
+
+def _build_multi_line_grouped_option(pivot_d, meta, styles):
+    """构建分组多折线图的 ECharts option"""
+    # 简化：复用dual_line builder,支持多条线
+    categories = meta['categories']
+    chart_title = meta.get('chart_title', '')
+    colors = styles.get('colors', {})
+
+    month_labels = [d.strftime('%b-%y') for d in pivot_d.index]
+
+    # 百分比数据
+    ec_data = {}
+    for c in categories:
+        if c in pivot_d.columns:
+            ec_data[c] = [round(float(v) * 100, 1) for v in pivot_d[c]]
+
+    series_items = []
+    for c in categories:
+        if c not in ec_data:
+            continue
+        color = colors.get(c, '#999999')
+        series_items.append({
+            'name': c, 'type': 'line', 'data': ec_data[c],
+            'symbol': 'circle', 'symbolSize': 5,
+            'lineStyle': {'color': color, 'width': 2.5},
+            'itemStyle': {'color': color},
+            'label': {
+                'show': True, 'position': 'top',
+                'fontSize': 10, 'color': color, 'fontWeight': 'bold',
+                'formatter': '{c}%'
+            }
+        })
+
+    return {
+        'month_labels': month_labels,
+        'series': series_items,
+        'legend_data': list(ec_data.keys()),
+        'chart_title': chart_title,
+        'is_percentage': True
+    }
+
+
+def _build_dual_line_with_bar_option(pivot_d, meta, styles):
+    """构建柱状+双折线图的 ECharts option（复用bar_multi_line逻辑）"""
+    # 简化：复用bar_multi_line builder
+    return _build_bar_multi_line_option(pivot_d, meta, styles)
+
+
+def _build_stacked_column_chart_option(pivot_d, meta, styles):
+    """构建双柱状+折线图的 ECharts option"""
+    categories = meta['categories']
+    chart_title = meta.get('chart_title', '')
+    colors = styles.get('colors', {})
+
+    month_labels = [d.strftime('%b-%y') for d in pivot_d.index]
+
+    # 前两个是柱状图（数量）
+    bar_cols = categories[:2]
+    # 第三个是折线（百分比）
+    line_col = categories[2] if len(categories) > 2 else None
+
+    series_items = []
+
+    # 柱状图
+    for bar_col in bar_cols:
+        if bar_col in pivot_d.columns:
+            bar_vals = [round(float(v), 1) for v in pivot_d[bar_col]]
+            bar_color = colors.get(bar_col, '#4472C4')
+            series_items.append({
+                'name': bar_col, 'type': 'bar', 'data': bar_vals,
+                'itemStyle': {'color': bar_color},
+                'label': {
+                    'show': True, 'position': 'top',
+                    'fontSize': 10, 'color': '#555', 'fontWeight': 'bold'
+                }
+            })
+
+    # 折线（可营销率）
+    if line_col and line_col in pivot_d.columns:
+        line_vals = [round(float(v) * 100, 1) for v in pivot_d[line_col]]
+        line_color = colors.get(line_col, '#808080')
+        series_items.append({
+            'name': line_col, 'type': 'line', 'yAxisIndex': 1,
+            'data': line_vals,
+            'symbol': 'circle', 'symbolSize': 5,
+            'lineStyle': {'color': line_color, 'width': 2.5},
+            'itemStyle': {'color': line_color},
+            'label': {
+                'show': True, 'position': 'top',
+                'fontSize': 10, 'color': line_color, 'fontWeight': 'bold',
+                'formatter': '{c}%'
+            }
+        })
+
+    return {
+        'month_labels': month_labels,
+        'series': series_items,
+        'legend_data': categories,
+        'chart_title': chart_title,
+        'dual_yaxis': True,
+        'yaxis1_name': '数量',
+        'yaxis2_name': '率'
+    }
+
+
 # ECharts option builders registry
 ECHART_BUILDERS = {
     'stacked_bar_line': _build_stacked_bar_line_option,
     'dual_line': _build_dual_line_option,
     'bar_multi_line': _build_bar_multi_line_option,
+    'single_line': _build_single_line_option,                   # 新增
+    'multi_line_grouped': _build_multi_line_grouped_option,     # 新增
+    'dual_line_with_bar': _build_dual_line_with_bar_option,     # 新增
+    'stacked_column_chart': _build_stacked_column_chart_option, # 新增
 }
 
 
