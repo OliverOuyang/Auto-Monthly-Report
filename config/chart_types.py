@@ -232,9 +232,314 @@ def render_bar_multi_line(pivot_display, meta, styles, font_prop):
     return fig
 
 
+def render_single_line(pivot_display, meta, styles, font_prop):
+    """单折线图（用于竞得率整体等指标）。"""
+    categories = meta['categories']
+    chart_title = meta.get('chart_title', '')
+    colors = styles.get('colors', {})
+
+    pv = pivot_display
+    month_labels = [d.strftime('%b-%y') for d in pv.index]
+    n_months = len(month_labels)
+    x = np.arange(n_months)
+
+    fig, ax = plt.subplots(figsize=(15, 6))
+    fig.patch.set_facecolor('white')
+
+    # ── 单条折线 ──
+    cat = categories[0]
+    vals = pv[cat].values.astype(float)
+    color = colors.get(cat, '#4472C4')
+    ax.plot(x, vals, 'o-', color=color, linewidth=2.5, markersize=6,
+            markerfacecolor=color, markeredgecolor='white',
+            markeredgewidth=0.8, zorder=5, label=cat)
+
+    # 数据标签（百分比格式，1位小数）
+    for i, v in enumerate(vals):
+        ax.text(x[i], v + 0.002, f'{v*100:.1f}%', ha='center', va='bottom',
+                fontsize=8.5, fontweight='bold', color=color,
+                fontproperties=font_prop, zorder=6)
+
+    # ── Axis / styling ──
+    ax.set_title(chart_title, fontsize=14, fontweight='bold', color='#333',
+                 fontproperties=font_prop, pad=18)
+    ax.set_xticks(x)
+    ax.set_xticklabels(month_labels, fontsize=9.5, color='#555', fontproperties=font_prop)
+    ax.set_xlim(-0.4, n_months - 0.6)
+
+    # Y 轴：百分比格式
+    ax.yaxis.set_visible(True)
+    ax.yaxis.set_major_formatter(plt.FuncFormatter(lambda y, _: f'{y*100:.1f}%'))
+    ax.tick_params(axis='y', labelsize=9.5, colors='#555')
+
+    # 网格线
+    ax.grid(axis='y', color='#DDDDDD', linestyle='-', linewidth=0.5, alpha=0.7, zorder=1)
+
+    # 边框
+    for spine in ax.spines.values():
+        spine.set_visible(True)
+        spine.set_color('#CCCCCC')
+        spine.set_linewidth(1)
+
+    # ── Legend ──
+    ax.legend(loc='upper center', bbox_to_anchor=(0.5, -0.06),
+              ncol=1, fontsize=9.5, frameon=False,
+              prop=font_prop, handlelength=1.5, handleheight=0.8)
+
+    plt.tight_layout(rect=[0, 0.04, 1, 1])
+    return fig
+
+
+def render_multi_line_grouped(pivot_display, meta, styles, font_prop):
+    """分组多折线图（用于竞得率-byV7preA等分组指标）。"""
+    categories = meta['categories']
+    chart_title = meta.get('chart_title', '')
+    colors = styles.get('colors', {})
+
+    pv = pivot_display
+    month_labels = [d.strftime('%b-%y') for d in pv.index]
+    n_months = len(month_labels)
+    x = np.arange(n_months)
+
+    fig, ax = plt.subplots(figsize=(15, 6))
+    fig.patch.set_facecolor('white')
+
+    # ── 多条折线（每个分组一条） ──
+    for cat in categories:
+        if cat not in pv.columns:
+            continue
+        vals = pv[cat].values.astype(float)
+        color = colors.get(cat, '#999999')
+        ax.plot(x, vals, 'o-', color=color, linewidth=2.2, markersize=5,
+                markerfacecolor=color, markeredgecolor='white',
+                markeredgewidth=0.8, zorder=5, label=cat)
+
+        # 数据标签（仅标注部分月份以避免拥挤）
+        for i, v in enumerate(vals):
+            if i % 2 == 0 or i == n_months - 1:  # 每隔一个月标注
+                ax.text(x[i], v + 0.005, f'{v*100:.1f}%', ha='center', va='bottom',
+                        fontsize=7.5, fontweight='bold', color=color,
+                        fontproperties=font_prop, zorder=6)
+
+    # ── Axis / styling ──
+    ax.set_title(chart_title, fontsize=14, fontweight='bold', color='#333',
+                 fontproperties=font_prop, pad=18)
+    ax.set_xticks(x)
+    ax.set_xticklabels(month_labels, fontsize=9.5, color='#555', fontproperties=font_prop)
+    ax.set_xlim(-0.4, n_months - 0.6)
+
+    # Y 轴：百分比格式
+    ax.yaxis.set_visible(True)
+    ax.yaxis.set_major_formatter(plt.FuncFormatter(lambda y, _: f'{y*100:.1f}%'))
+    ax.tick_params(axis='y', labelsize=9.5, colors='#555')
+
+    # 网格线
+    ax.grid(axis='y', color='#DDDDDD', linestyle='-', linewidth=0.5, alpha=0.7, zorder=1)
+
+    # 边框
+    for spine in ax.spines.values():
+        spine.set_visible(True)
+        spine.set_color('#CCCCCC')
+        spine.set_linewidth(1)
+
+    # ── Legend ──
+    ax.legend(loc='upper center', bbox_to_anchor=(0.5, -0.06),
+              ncol=min(len(categories), 5), fontsize=9.5, frameon=False,
+              prop=font_prop, handlelength=1.5, handleheight=0.8, columnspacing=2.0)
+
+    plt.tight_layout(rect=[0, 0.04, 1, 1])
+    return fig
+
+
+def render_dual_line_with_bar(pivot_display, meta, styles, font_prop):
+    """柱状图 + 双折线（用于渠道转化总览、请求参竞等）。"""
+    categories = meta['categories']
+    chart_title = meta.get('chart_title', '')
+    colors = styles.get('colors', {})
+
+    pv = pivot_display
+    month_labels = [d.strftime('%b-%y') for d in pv.index]
+    n_months = len(month_labels)
+    x = np.arange(n_months)
+    bw = 0.5
+
+    fig, ax1 = plt.subplots(figsize=(15, 6))
+    fig.patch.set_facecolor('white')
+
+    # ── 左Y轴：柱状图（第一个指标，如日耗、请求数等） ──
+    bar_col = categories[0]
+    bar_vals = pv[bar_col].values.astype(float)
+    bar_color = colors.get(bar_col, '#808080')
+
+    ax1.bar(x, bar_vals, bw, color=bar_color, label=bar_col,
+            edgecolor='white', linewidth=0.5, zorder=3)
+
+    # 柱状图数据标签
+    for i, v in enumerate(bar_vals):
+        if v > 0:
+            ax1.text(x[i], v * 0.05, f'{v:.1f}', ha='center', va='bottom',
+                     fontsize=7.5, fontweight='bold', color='#555',
+                     fontproperties=font_prop, zorder=6)
+
+    ax1.set_ylabel(bar_col, fontsize=9.5, fontweight='bold', color='#333', fontproperties=font_prop)
+    ax1.tick_params(axis='y', labelsize=10, colors='#555')
+    ax1.set_ylim(0, max(bar_vals) * 1.15)
+    ax1.yaxis.set_visible(True)
+
+    # ── 右Y轴：双折线（其余指标） ──
+    ax2 = ax1.twinx()
+
+    line_cats = categories[1:]
+    for cat in line_cats:
+        if cat not in pv.columns:
+            continue
+        vals = pv[cat].values.astype(float)
+        color = colors.get(cat, '#4472C4')
+        ax2.plot(x, vals, 'o-', color=color, linewidth=2.5, markersize=5,
+                 markerfacecolor=color, markeredgecolor='white',
+                 markeredgewidth=0.8, zorder=5, label=cat)
+
+        # 数据标签
+        for i, v in enumerate(vals):
+            # 根据值的大小决定标签格式
+            if v < 1:  # 百分比
+                label_text = f'{v*100:.1f}%'
+            else:  # 数值
+                label_text = f'{v:.0f}'
+            ax2.text(x[i], v + max(vals) * 0.02, label_text, ha='center', va='bottom',
+                     fontsize=8.5, fontweight='bold', color=color,
+                     fontproperties=font_prop, zorder=6)
+
+    ax2.set_ylabel('转化指标', fontsize=9.5, fontweight='bold', color='#333', fontproperties=font_prop)
+    ax2.tick_params(axis='y', labelsize=10, colors='#555')
+
+    # ── 共享 X 轴 ──
+    ax1.set_title(chart_title, fontsize=14, fontweight='bold', color='#333',
+                  fontproperties=font_prop, pad=18)
+    ax1.set_xticks(x)
+    ax1.set_xticklabels(month_labels, fontsize=9.5, color='#555', fontproperties=font_prop)
+    ax1.set_xlim(-0.6, n_months - 0.4)
+
+    # 网格线
+    ax1.grid(axis='y', color='#EEEEEE', linestyle='-', linewidth=0.5, alpha=0.7, zorder=1)
+
+    # 边框
+    for spine in ax1.spines.values():
+        spine.set_visible(True)
+        spine.set_color('#CCCCCC')
+
+    # ── Legend ──
+    handles1, labels1 = ax1.get_legend_handles_labels()
+    handles2, labels2 = ax2.get_legend_handles_labels()
+    ax1.legend(handles1 + handles2, labels1 + labels2,
+               loc='upper center', bbox_to_anchor=(0.5, -0.06),
+               ncol=min(len(categories), 5), fontsize=9.5, frameon=False,
+               prop=font_prop, handlelength=1.5, handleheight=0.8, columnspacing=2.0)
+
+    plt.tight_layout(rect=[0, 0.04, 1, 1])
+    return fig
+
+
+def render_stacked_column_chart(pivot_display, meta, styles, font_prop):
+    """双柱状 + 折线（用于精准授库结果）。"""
+    categories = meta['categories']
+    chart_title = meta.get('chart_title', '')
+    colors = styles.get('colors', {})
+
+    pv = pivot_display
+    month_labels = [d.strftime('%b-%y') for d in pv.index]
+    n_months = len(month_labels)
+    x = np.arange(n_months)
+    bw = 0.35
+
+    fig, ax1 = plt.subplots(figsize=(15, 6))
+    fig.patch.set_facecolor('white')
+
+    # ── 左Y轴：并列柱状图（前两个指标，如授库量、可营销量） ──
+    bar_cols = categories[:2]
+    offsets = [-bw/2, bw/2]
+    for bar_col, offset in zip(bar_cols, offsets):
+        if bar_col not in pv.columns:
+            continue
+        bar_vals = pv[bar_col].values.astype(float)
+        bar_color = colors.get(bar_col, '#4472C4')
+
+        ax1.bar(x + offset, bar_vals, bw * 0.9, color=bar_color, label=bar_col,
+                edgecolor='white', linewidth=0.5, zorder=3)
+
+        # 数据标签
+        for i, v in enumerate(bar_vals):
+            if v > 0:
+                ax1.text(x[i] + offset, v * 0.05, f'{v:.0f}', ha='center', va='bottom',
+                         fontsize=7.5, fontweight='bold', color='#555',
+                         fontproperties=font_prop, zorder=6)
+
+    ax1.set_ylabel('数量', fontsize=9.5, fontweight='bold', color='#333', fontproperties=font_prop)
+    ax1.tick_params(axis='y', labelsize=10, colors='#555')
+    max_bar_val = max(pv[bar_cols].max().max(), 1)
+    ax1.set_ylim(0, max_bar_val * 1.15)
+    ax1.yaxis.set_visible(True)
+
+    # ── 右Y轴：折线（第三个指标，如可营销率） ──
+    if len(categories) > 2:
+        ax2 = ax1.twinx()
+        line_col = categories[2]
+        if line_col in pv.columns:
+            vals = pv[line_col].values.astype(float)
+            color = colors.get(line_col, '#808080')
+            ax2.plot(x, vals, 'o-', color=color, linewidth=2.5, markersize=5,
+                     markerfacecolor=color, markeredgecolor='white',
+                     markeredgewidth=0.8, zorder=5, label=line_col)
+
+            # 数据标签（百分比格式）
+            for i, v in enumerate(vals):
+                ax2.text(x[i], v + 0.005, f'{v*100:.1f}%', ha='center', va='bottom',
+                         fontsize=8.5, fontweight='bold', color=color,
+                         fontproperties=font_prop, zorder=6)
+
+            ax2.set_ylabel('率指标', fontsize=9.5, fontweight='bold', color='#333', fontproperties=font_prop)
+            ax2.yaxis.set_major_formatter(plt.FuncFormatter(lambda y, _: f'{y*100:.1f}%'))
+            ax2.tick_params(axis='y', labelsize=10, colors='#555')
+
+    # ── 共享 X 轴 ──
+    ax1.set_title(chart_title, fontsize=14, fontweight='bold', color='#333',
+                  fontproperties=font_prop, pad=18)
+    ax1.set_xticks(x)
+    ax1.set_xticklabels(month_labels, fontsize=9.5, color='#555', fontproperties=font_prop)
+    ax1.set_xlim(-0.6, n_months - 0.4)
+
+    # 网格��
+    ax1.grid(axis='y', color='#EEEEEE', linestyle='-', linewidth=0.5, alpha=0.7, zorder=1)
+
+    # 边框
+    for spine in ax1.spines.values():
+        spine.set_visible(True)
+        spine.set_color('#CCCCCC')
+
+    # ── Legend ──
+    handles1, labels1 = ax1.get_legend_handles_labels()
+    if len(categories) > 2:
+        handles2, labels2 = ax2.get_legend_handles_labels()
+        ax1.legend(handles1 + handles2, labels1 + labels2,
+                   loc='upper center', bbox_to_anchor=(0.5, -0.06),
+                   ncol=len(categories), fontsize=9.5, frameon=False,
+                   prop=font_prop, handlelength=1.5, handleheight=0.8, columnspacing=2.0)
+    else:
+        ax1.legend(loc='upper center', bbox_to_anchor=(0.5, -0.06),
+                   ncol=len(bar_cols), fontsize=9.5, frameon=False,
+                   prop=font_prop, handlelength=1.5, handleheight=0.8)
+
+    plt.tight_layout(rect=[0, 0.04, 1, 1])
+    return fig
+
+
 # ── 图表类型注册表 ──
 CHART_RENDERERS = {
     'stacked_bar_line': render_stacked_bar_line,
     'dual_line': render_dual_line,
     'bar_multi_line': render_bar_multi_line,
+    'single_line': render_single_line,                   # 新增
+    'multi_line_grouped': render_multi_line_grouped,     # 新增
+    'dual_line_with_bar': render_dual_line_with_bar,     # 新增
+    'stacked_column_chart': render_stacked_column_chart, # 新增
 }
