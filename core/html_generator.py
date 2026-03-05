@@ -19,7 +19,7 @@ def _build_stacked_bar_line_option(pivot_d, meta, styles):
     month_labels = [d.strftime('%b-%y') for d in pivot_d.index]
 
     def fmt_unit(v):
-        return f"{v:.2f}{unit}" if abs(v) >= 0.15 else ""
+        return f"{v:.1f}{unit}" if abs(v) >= 0.15 else ""
 
     ec_data = {c: [round(float(v), 4) for v in pivot_d[c]] for c in categories}
     if '总计' in pivot_d.columns:

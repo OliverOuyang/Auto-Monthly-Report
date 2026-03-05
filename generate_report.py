@@ -11,7 +11,17 @@ from core import analyzer, chart_renderer, data_processor, excel_reader, html_ge
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Generate monthly report HTML and PPT.")
-    parser.add_argument("--excel", required=True, help="Path to the structured Excel file.")
+    parser.add_argument("--excel", required=True, help="Path to the source Excel file.")
+    parser.add_argument(
+        "--profile",
+        default=None,
+        help="External YAML profile path. If omitted, read _meta/_styles from Excel.",
+    )
+    parser.add_argument(
+        "--workspace",
+        default=None,
+        help="Intermediate workspace dir for run artifacts/logs (optional).",
+    )
     parser.add_argument(
         "--indicators",
         default=None,
@@ -25,13 +35,25 @@ def main(
     excel_path: str,
     indicator_ids: list[str] | None = None,
     output_path: str | None = None,
+    profile_path: str | None = None,
+    workspace: str | None = None,
 ) -> dict:
     excel_path_obj = Path(excel_path)
-    export_html_dir = excel_path_obj.parent.parent / "export" / "HTML"
-    export_ppt_dir = excel_path_obj.parent.parent / "export" / "PPT"
+    workspace_path = Path(workspace) if workspace else None
 
-    meta_list = excel_reader.read_meta(excel_path)
-    styles = excel_reader.read_styles(excel_path)
+    if workspace_path:
+        export_html_dir = workspace_path / "HTML"
+        export_ppt_dir = workspace_path / "PPT"
+    else:
+        export_html_dir = excel_path_obj.parent.parent / "export" / "HTML"
+        export_ppt_dir = excel_path_obj.parent.parent / "export" / "PPT"
+
+    if profile_path:
+        meta_list = excel_reader.read_meta_from_profile(profile_path)
+        styles = excel_reader.read_styles_from_profile(profile_path)
+    else:
+        meta_list = excel_reader.read_meta(excel_path)
+        styles = excel_reader.read_styles(excel_path)
 
     if indicator_ids:
         wanted = set(indicator_ids)
@@ -48,18 +70,15 @@ def main(
 
     for meta in meta_list:
         indicator_id = meta["indicator_id"]
-        data_source_type = meta.get('data_source_type', 'single')
+        data_source_type = meta.get("data_source_type", "single")
 
-        # 根据数据源类型选择处理方式
-        if data_source_type == 'derived':
-            # 派生类型：调用专用 builder
+        if data_source_type == "derived":
             builder_name = f"build_{indicator_id}_pivot"
             builder = getattr(data_processor, builder_name, None)
             if builder is None:
-                raise ValueError(f"未找到派生数据处理器: {builder_name}")
+                raise ValueError(f"Derived builder not found: {builder_name}")
             pivot = builder(excel_path, meta)
         else:
-            # 单表类型：原有逻辑
             pivot = excel_reader.read_pivot(excel_path, indicator_id)
             if pivot is None:
                 raw_sheet = meta.get("raw_sheet")
@@ -88,6 +107,7 @@ def main(
         "html_paths": html_paths,
         "chart_paths": chart_paths,
         "indicator_count": len(meta_list),
+        "workspace": workspace_path,
     }
 
 
@@ -101,6 +121,8 @@ if __name__ == "__main__":
         excel_path=args.excel,
         indicator_ids=indicators,
         output_path=args.output,
+        profile_path=args.profile,
+        workspace=args.workspace,
     )
 
     print(f"Generated {result['indicator_count']} indicators.")

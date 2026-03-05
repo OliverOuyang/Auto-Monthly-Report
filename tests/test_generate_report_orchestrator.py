@@ -51,11 +51,52 @@ class GenerateReportOrchestratorTests(unittest.TestCase):
 
     def test_parse_args_parses_indicators(self):
         args = generate_report.parse_args(
-            ["--excel", "file.xlsx", "--indicators", "a,b,c", "--output", "x.pptx"]
+            [
+                "--excel",
+                "file.xlsx",
+                "--indicators",
+                "a,b,c",
+                "--output",
+                "x.pptx",
+                "--profile",
+                "config/profiles/monthly_report_v1.yaml",
+                "--workspace",
+                "Data/intermediate/workspaces/run_001",
+            ]
         )
         self.assertEqual("file.xlsx", args.excel)
         self.assertEqual("a,b,c", args.indicators)
         self.assertEqual("x.pptx", args.output)
+        self.assertEqual("config/profiles/monthly_report_v1.yaml", args.profile)
+        self.assertEqual("Data/intermediate/workspaces/run_001", args.workspace)
+
+    def test_main_uses_profile_config_when_profile_path_is_provided(self):
+        meta_keep = {
+            "indicator_id": "id_keep",
+            "slide_order": 1,
+            "raw_sheet": "raw_keep",
+            "chart_title": "Keep Chart",
+            "report_month": "2026-02",
+        }
+        with patch.object(generate_report.excel_reader, "read_meta_from_profile", return_value=[meta_keep]) as read_meta_profile, \
+             patch.object(generate_report.excel_reader, "read_styles_from_profile", return_value={"colors": {}, "global": {}}) as read_styles_profile, \
+             patch.object(generate_report.excel_reader, "read_pivot", return_value=None), \
+             patch.object(generate_report.excel_reader, "read_raw", return_value="raw_df"), \
+             patch.object(generate_report.data_processor, "build_pivot", return_value="pivot_df"), \
+             patch.object(generate_report.analyzer, "analyze", return_value=["line1"]), \
+             patch.object(generate_report.chart_renderer, "render", return_value=Path("chart.png")), \
+             patch.object(generate_report.html_generator, "generate", return_value=Path("out.html")), \
+             patch.object(generate_report.ppt_generator, "create_presentation", return_value=MagicMock()), \
+             patch.object(generate_report.ppt_generator, "add_slide"), \
+             patch.object(generate_report.ppt_generator, "save", return_value=Path("out.pptx")):
+            generate_report.main(
+                excel_path="fake.xlsx",
+                profile_path="config/profiles/monthly_report_v1.yaml",
+                output_path="custom.pptx",
+            )
+
+        read_meta_profile.assert_called_once_with("config/profiles/monthly_report_v1.yaml")
+        read_styles_profile.assert_called_once_with("config/profiles/monthly_report_v1.yaml")
 
 
 if __name__ == "__main__":

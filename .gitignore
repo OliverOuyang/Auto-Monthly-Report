@@ -7,3 +7,30 @@ __pycache__/
 *.pyc
 # Temp chart images
 export/PPT/chart_temp.png
+
+# Data files (local only)
+Data/*.xlsx
+Data/input/raw/*.xlsx
+Data/input/archive/**
+Data/intermediate/**
+!Data/intermediate/.gitkeep
+Data/pic/*.png
+
+# Export artifacts (local only)
+export/**
+!export/latest/
+!export/latest/HTML/
+!export/latest/PPT/
+!export/latest/HTML/.gitkeep
+!export/latest/PPT/.gitkeep
+export/latest/HTML/*
+export/latest/PPT/*
+!export/latest/HTML/.gitkeep
+!export/latest/PPT/.gitkeep
+
+# Archived scripts (historical only)
+scripts/archive/**
+
+# Root temp artifacts
+*.stackdump
+temp_*.csv

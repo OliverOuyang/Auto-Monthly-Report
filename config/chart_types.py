@@ -43,8 +43,8 @@ def render_stacked_bar_line(pivot_display, meta, styles, font_prop):
             if cat == categories[0] and v > 2:
                 cy = b + v * 0.25
             lx = x[i] + bw / 2 - 0.04
-            ax.text(lx, cy, f'{v:.2f}{unit}', ha='right', va='center',
-                    fontsize=10, fontweight='bold', color=label_color,
+            ax.text(lx, cy, f'{v:.1f}{unit}', ha='right', va='center',
+                    fontsize=7.5, fontweight='bold', color=label_color,
                     fontproperties=font_prop, zorder=6)
 
         bottoms += vals
@@ -56,15 +56,15 @@ def render_stacked_bar_line(pivot_display, meta, styles, font_prop):
                 markerfacecolor=line_color, markeredgecolor='white',
                 markeredgewidth=0.8, zorder=5, label='总计')
         for i, v in enumerate(totals):
-            ax.text(x[i], v + 0.25, f'{v:.2f}{unit}', ha='center', va='bottom',
-                    fontsize=10, fontweight='bold', color=line_color,
+            ax.text(x[i], v + 0.25, f'{v:.1f}{unit}', ha='center', va='bottom',
+                    fontsize=8.5, fontweight='bold', color=line_color,
                     fontproperties=font_prop, zorder=6)
 
     # ── Axis / styling ──
     ax.set_title(chart_title, fontsize=14, fontweight='bold', color='#333',
                  fontproperties=font_prop, pad=18)
     ax.set_xticks(x)
-    ax.set_xticklabels(month_labels, fontsize=10, color='#555', fontproperties=font_prop)
+    ax.set_xticklabels(month_labels, fontsize=9.5, color='#555', fontproperties=font_prop)
     ax.set_xlim(-0.6, n_months - 0.4)
     if '总计' in pv.columns:
         ax.set_ylim(0, max(pv['总计'].values.astype(float)) * 1.12)
@@ -84,7 +84,7 @@ def render_stacked_bar_line(pivot_display, meta, styles, font_prop):
     extra_labels = labels[len(categories):]
     ax.legend(cat_handles + extra_handles, cat_labels + extra_labels,
               loc='upper center', bbox_to_anchor=(0.5, -0.06),
-              ncol=len(categories) + 1, fontsize=10, frameon=False,
+              ncol=len(categories) + 1, fontsize=9.5, frameon=False,
               prop=font_prop, handlelength=1.2, handleheight=0.8, columnspacing=2.0)
 
     plt.tight_layout(rect=[0, 0.04, 1, 1])
@@ -116,20 +116,20 @@ def render_dual_line(pivot_display, meta, styles, font_prop):
         # 数据标签（百分比格式，1位小数）
         for i, v in enumerate(vals):
             ax.text(x[i], v + 0.002, f'{v*100:.1f}%', ha='center', va='bottom',
-                    fontsize=10, fontweight='bold', color=color,
+                    fontsize=8.5, fontweight='bold', color=color,
                     fontproperties=font_prop, zorder=6)
 
     # ── Axis / styling ──
     ax.set_title(chart_title, fontsize=14, fontweight='bold', color='#333',
                  fontproperties=font_prop, pad=18)
     ax.set_xticks(x)
-    ax.set_xticklabels(month_labels, fontsize=10, color='#555', fontproperties=font_prop)
+    ax.set_xticklabels(month_labels, fontsize=9.5, color='#555', fontproperties=font_prop)
     ax.set_xlim(-0.4, n_months - 0.6)
 
     # Y 轴：百分比格式（1位小数）
     ax.yaxis.set_visible(True)
     ax.yaxis.set_major_formatter(plt.FuncFormatter(lambda y, _: f'{y*100:.1f}%'))
-    ax.tick_params(axis='y', labelsize=10, colors='#555')
+    ax.tick_params(axis='y', labelsize=9.5, colors='#555')
 
     # 网格线
     ax.grid(axis='y', color='#DDDDDD', linestyle='-', linewidth=0.5, alpha=0.7, zorder=1)
@@ -142,7 +142,7 @@ def render_dual_line(pivot_display, meta, styles, font_prop):
 
     # ── Legend ──
     ax.legend(loc='upper center', bbox_to_anchor=(0.5, -0.06),
-              ncol=len(categories), fontsize=10, frameon=False,
+              ncol=len(categories), fontsize=9.5, frameon=False,
               prop=font_prop, handlelength=1.5, handleheight=0.8, columnspacing=2.0)
 
     plt.tight_layout(rect=[0, 0.04, 1, 1])
@@ -176,10 +176,10 @@ def render_bar_multi_line(pivot_display, meta, styles, font_prop):
     for i, v in enumerate(bar_vals):
         if v > 100:  # 只标注较大的值
             ax1.text(x[i], v * 0.05, f'{v:.0f}', ha='center', va='bottom',
-                     fontsize=10, fontweight='bold', color='#555',
+                     fontsize=7.5, fontweight='bold', color='#555',
                      fontproperties=font_prop, zorder=6)
 
-    ax1.set_ylabel(bar_col, fontsize=10, fontweight='bold', color='#333', fontproperties=font_prop)
+    ax1.set_ylabel(bar_col, fontsize=9.5, fontweight='bold', color='#333', fontproperties=font_prop)
     ax1.tick_params(axis='y', labelsize=10, colors='#555')
     ax1.set_ylim(0, max(bar_vals) * 1.15)
     ax1.yaxis.set_visible(True)
@@ -198,10 +198,10 @@ def render_bar_multi_line(pivot_display, meta, styles, font_prop):
         # 数据标签（百分比格式，1位小数，点上方）
         for i, v in enumerate(vals):
             ax2.text(x[i], v + 0.005, f'{v*100:.1f}%', ha='center', va='bottom',
-                     fontsize=10, fontweight='bold', color=color,
+                     fontsize=8.5, fontweight='bold', color=color,
                      fontproperties=font_prop, zorder=6)
 
-    ax2.set_ylabel('过件率', fontsize=10, fontweight='bold', color='#333', fontproperties=font_prop)
+    ax2.set_ylabel('过件率', fontsize=9.5, fontweight='bold', color='#333', fontproperties=font_prop)
     ax2.yaxis.set_major_formatter(plt.FuncFormatter(lambda y, _: f'{y*100:.1f}%'))
     ax2.tick_params(axis='y', labelsize=10, colors='#555')
 
@@ -209,7 +209,7 @@ def render_bar_multi_line(pivot_display, meta, styles, font_prop):
     ax1.set_title(chart_title, fontsize=14, fontweight='bold', color='#333',
                   fontproperties=font_prop, pad=18)
     ax1.set_xticks(x)
-    ax1.set_xticklabels(month_labels, fontsize=10, color='#555', fontproperties=font_prop)
+    ax1.set_xticklabels(month_labels, fontsize=9.5, color='#555', fontproperties=font_prop)
     ax1.set_xlim(-0.6, n_months - 0.4)
 
     # 网格线（仅左Y轴）
@@ -225,7 +225,7 @@ def render_bar_multi_line(pivot_display, meta, styles, font_prop):
     handles2, labels2 = ax2.get_legend_handles_labels()
     ax1.legend(handles1 + handles2, labels1 + labels2,
                loc='upper center', bbox_to_anchor=(0.5, -0.06),
-               ncol=len(categories), fontsize=10, frameon=False,
+               ncol=len(categories), fontsize=9.5, frameon=False,
                prop=font_prop, handlelength=1.5, handleheight=0.8, columnspacing=2.0)
 
     plt.tight_layout(rect=[0, 0.04, 1, 1])

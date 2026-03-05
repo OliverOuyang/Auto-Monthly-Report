@@ -35,14 +35,8 @@ def build_pivot(raw: pd.DataFrame, meta: dict) -> pd.DataFrame:
     df[value_col] = pd.to_numeric(df[value_col], errors='coerce').fillna(0)
 
     # 1. 过滤
-    # 特殊处理：spend_by_channel 只过滤"免费渠道"，并将"其他"合并到"其他CPA渠道"
-    if indicator_id == 'spend_by_channel':
-        df = df[~df[group_col].isin(['免费渠道'])]
-        # 合并"其他"到"其他CPA渠道"
-        if '其他' in df[group_col].values:
-            merge_rules = merge_rules.copy() if merge_rules else {}
-            merge_rules['其他'] = '其他CPA渠道'
-    elif filter_exclude:
+    # 按照 meta 配置中的 filter_exclude 过滤数据
+    if filter_exclude:
         df = df[~df[group_col].isin(filter_exclude)]
 
     # 2. 合并分类
@@ -96,11 +90,8 @@ def build_cps_all_channel_pivot(excel_path: str, meta: dict) -> pd.DataFrame:
     df_spend['date_month'] = pd.to_datetime(df_spend['date_month'])
     df_spend['业务口径花费'] = pd.to_numeric(df_spend['业务口径花费'], errors='coerce').fillna(0)
 
-    # 过滤：只去掉免费渠道，保留"其他"和"其他CPA渠道"
-    df_spend_filtered = df_spend[~df_spend['渠道类别'].isin(['免费渠道'])].copy()
-
-    # 将"其他"合并到"其他CPA渠道"
-    df_spend_filtered['渠道类别'] = df_spend_filtered['渠道类别'].replace({'其他': '其他CPA渠道'})
+    # 过滤：去掉"其他"和"免费渠道"（与 spend_by_channel 的 filter_exclude 一致）
+    df_spend_filtered = df_spend[~df_spend['渠道类别'].isin(['其他', '免费渠道'])].copy()
 
     # 按月聚合
     spend_monthly = df_spend_filtered.groupby('date_month')['业务口径花费'].sum()
@@ -150,8 +141,9 @@ def build_cps_all_channel_pivot(excel_path: str, meta: dict) -> pd.DataFrame:
     df_conversion['a_scr'] = pd.to_numeric(df_conversion['a_scr'], errors='coerce')
 
     # 过滤条件
+    # T0CPS 分母口径：仅排除 API（保留 其他、免费渠道）
     mask = (
-        ~df_conversion['渠道类别'].isin(['API', '其他', '免费渠道']) &
+        (df_conversion['渠道类别'] != 'API') &
         df_conversion['a_scr'].isin([1, 2, 3, 4, 5, 6, 7])
     )
     df_t0_filtered = df_conversion[mask]

@@ -1,0 +1,127 @@
+report_month: 2026-02
+manual_inputs_csv: config/manual_inputs.csv
+indicators:
+- indicator_id: trade_by_group
+  slide_order: 1
+  chart_type: stacked_bar_line
+  chart_title: 首借交易额-24H
+  slide_title: 获客规模指标：1-7评级首借交易 By客群
+  raw_sheet: 1_首借交易
+  time_column: month
+  group_column: user_group
+  value_column: loan_principal_amount
+  agg_func: sum
+  categories:
+  - 当月首登M0
+  - 存量首登M0
+  - 初审M1+
+  - 非初审
+  - API回流
+  filter_exclude:
+  - 其他
+  merge_rules:
+    非初审-重申: 非初审
+    非初审-重审及其他: 非初审
+  show_total_line: true
+  unit_divisor: 100000000.0
+  unit: 亿
+  report_month: 2026-02
+  analysis_template: trade_mom
+  data_source_type: single
+- indicator_id: spend_by_channel
+  slide_order: 2
+  chart_type: stacked_bar_line
+  chart_title: 业务口径花费-by渠道
+  slide_title: 获客规模指标：花费 By渠道
+  raw_sheet: 2_花费
+  time_column: date_month
+  group_column: 渠道类别
+  value_column: 业务口径花费
+  agg_func: sum
+  categories:
+  - 腾讯
+  - 抖音
+  - 精准营销
+  - 付费商店
+  - 其他信息流
+  - 其他CPA渠道
+  - MGM
+  filter_exclude:
+  - 其他
+  - 免费渠道
+  merge_rules: {}
+  show_total_line: true
+  unit_divisor: 10000.0
+  unit: 万
+  report_month: 2026-02
+  analysis_template: spend_mom
+  data_source_type: single
+- indicator_id: cps_all_channel
+  slide_order: 3
+  chart_type: dual_line
+  chart_title: CPS
+  slide_title: 获客效率指标：1-7评级CPS
+  raw_sheet: .nan
+  time_column: .nan
+  group_column: .nan
+  value_column: .nan
+  agg_func: .nan
+  categories:
+  - 1-7全首借CPS
+  - 1-7 T0CPS
+  filter_exclude: .nan
+  merge_rules: {}
+  show_total_line: false
+  unit_divisor: 1.0
+  unit: .nan
+  report_month: 2026-02
+  analysis_template: cps_trend
+  data_source_type: derived
+- indicator_id: quality_credit
+  slide_order: 4
+  chart_type: bar_multi_line
+  chart_title: 1-3过件率 & 1-7平均授信额度
+  slide_title: 获客质量指标：首登T0 1-3组过件率、1-7组平均授信额度
+  raw_sheet: 3_首登到交易转化
+  time_column: date_month
+  group_column: .nan
+  value_column: .nan
+  agg_func: .nan
+  categories:
+  - 1-7 T0平均授信额度
+  - 1-3 T0过件率
+  - 1-3 T0过件率_投放渠道
+  - 1-3 T0过件率_免费
+  filter_exclude: .nan
+  merge_rules: {}
+  show_total_line: false
+  unit_divisor: 1.0
+  unit: .nan
+  report_month: 2026-02
+  analysis_template: quality_trend
+  data_source_type: derived
+styles:
+  colors:
+    当月首登M0: '#1F4E79'
+    存量首登M0: '#ED7D31'
+    初审M1+: '#FFC000'
+    非初审: '#70AD47'
+    API回流: '#5B9BD5'
+    腾讯: '#1F4E79'
+    抖音: '#ED7D31'
+    精准营销: '#FFC000'
+    付费商店: '#70AD47'
+    其他信息流: '#9DC3E6'
+    其他CPA渠道: '#FF8080'
+    MGM: '#404040'
+    1-7全首借CPS: '#4472C4'
+    1-7 T0CPS: '#ED7D31'
+    1-7 T0平均授信额度: '#FFC000'
+    1-3 T0过件率: '#4472C4'
+    1-3 T0过件率_投放渠道: '#ED7D31'
+    1-3 T0过件率_免费: '#70AD47'
+  global:
+    title_color: '#8B4513'
+    total_line_color: '#FF0000'
+    label_color: '#5A5A5A'
+    font_family: Microsoft YaHei
