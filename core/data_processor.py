@@ -250,3 +250,104 @@ def build_quality_credit_pivot(excel_path: str, meta: dict) -> pd.DataFrame:
     result.index.name = 'month'
 
     return result
+
+
+def build_channel_overview_tencent_pivot(excel_path: str, meta: dict) -> pd.DataFrame:
+    """
+    构建腾讯渠道转化总览透视表（P11）。
+
+    从 4_转化 表筛选腾讯渠道数据，计算派生指标：
+    - 日耗 = business_fee / days / 10000
+    - T0CPS_24h = business_fee / t0_loan_amount_24h
+    - 1-7平均额度 = to_adt_credit_lmt / t0_adt_cnt
+    - 进件1-3通过率 = t0_safe_adt_cnt / t0_ato_cnt_age_refuse
+    - 进件1-7通过率 = t0_adt_cnt / t0_ato_cnt_age_refuse
+
+    返回：
+    index=month, columns=[日耗, T0CPS_24h, 1-7平均额度, 进件1-3通过率, 进件1-7通过率]
+    """
+    return _build_channel_overview_pivot(excel_path, meta, channel='腾讯')
+
+
+def build_channel_overview_douyin_pivot(excel_path: str, meta: dict) -> pd.DataFrame:
+    """构建抖音渠道转化总览透视表（P15）。"""
+    return _build_channel_overview_pivot(excel_path, meta, channel='抖音')
+
+
+def build_channel_overview_jingzhun_pivot(excel_path: str, meta: dict) -> pd.DataFrame:
+    """构建精准营销渠道转化总览透视表（P19）。"""
+    return _build_channel_overview_pivot(excel_path, meta, channel='精准营销')
+
+
+def _build_channel_overview_pivot(excel_path: str, meta: dict, channel: str) -> pd.DataFrame:
+    """
+    内部函数：构建指定渠道的转化总览。
+
+    参数:
+        excel_path: Excel文件路径
+        meta: 指标配置
+        channel: 渠道名称（腾讯/抖音/精准营销）
+    """
+    report_month = pd.Timestamp(meta['report_month'] + '-01')
+
+    # 读取 4_转化 表
+    df = pd.read_excel(excel_path, sheet_name='4_转化')
+    df['mon'] = pd.to_datetime(df['mon'])
+
+    # 筛选指定渠道
+    df_channel = df[df['channel'] == channel].copy()
+
+    # 处理 \N 值：转换为 NaN
+    for col in df_channel.columns:
+        if df_channel[col].dtype == object:
+            df_channel[col] = df_channel[col].replace(r'\N', np.nan)
+
+    # 转换数值列
+    numeric_cols = ['days', 'business_fee', 't0_loan_amount_24h', 'to_adt_credit_lmt',
+                    't0_adt_cnt', 't0_safe_adt_cnt', 't0_ato_cnt_age_refuse']
+    for col in numeric_cols:
+        df_channel[col] = pd.to_numeric(df_channel[col], errors='coerce')
+
+    # 按月聚合（sum）
+    agg_dict = {
+        'days': 'first',  # days 取第一个非空值
+        'business_fee': 'sum',
+        't0_loan_amount_24h': 'sum',
+        'to_adt_credit_lmt': 'sum',
+        't0_adt_cnt': 'sum',
+        't0_safe_adt_cnt': 'sum',
+        't0_ato_cnt_age_refuse': 'sum',
+    }
+    df_monthly = df_channel.groupby('mon').agg(agg_dict)
+
+    # 计算派生指标
+    result_dict = {}
+
+    # 日耗（万元）
+    result_dict['日耗'] = (df_monthly['business_fee'] / df_monthly['days'] / 10000).replace(
+        [np.inf, -np.inf], np.nan).fillna(0)
+
+    # T0CPS_24h
+    result_dict['T0CPS_24h'] = (df_monthly['business_fee'] / df_monthly['t0_loan_amount_24h']).replace(
+        [np.inf, -np.inf], np.nan).fillna(0)
+
+    # 1-7平均额度（元）
+    result_dict['1-7平均额度'] = (df_monthly['to_adt_credit_lmt'] / df_monthly['t0_adt_cnt']).replace(
+        [np.inf, -np.inf], np.nan).fillna(0)
+
+    # 进件1-3通过率
+    result_dict['进件1-3通过率'] = (df_monthly['t0_safe_adt_cnt'] / df_monthly['t0_ato_cnt_age_refuse']).replace(
+        [np.inf, -np.inf], np.nan).fillna(0)
+
+    # 进件1-7通过率
+    result_dict['进件1-7通过率'] = (df_monthly['t0_adt_cnt'] / df_monthly['t0_ato_cnt_age_refuse']).replace(
+        [np.inf, -np.inf], np.nan).fillna(0)
+
+    # 构建结果
+    result = pd.DataFrame(result_dict, index=df_monthly.index)
+    result.index.name = 'month'
+
+    # 截止到 report_month
+    result = result.loc[result.index <= report_month].sort_index()
+
+    return result
