@@ -297,8 +297,8 @@ def _analyze_cost_chart(curr, prev, report_month, prev_m, channel, categories, p
     spend_dir = "下降" if spend_change < 0 else "上升"
 
     lines.append(
-        f"数据表现: 质量由{t0cps_prev*100:.1f}%{'提升' if cps_change < 0 else '下降'}至{t0cps*100:.1f}%,"
-        f"成本{t0cps_prev*100:.1f}%{cps_dir}至{t0cps*100:.1f}%,日耗{spend_dir}{abs(spend_change):.0f}万"
+        f"数据表现: 成本由{t0cps_prev*100:.1f}%{cps_dir}至{t0cps*100:.1f}%,"
+        f"日耗{spend_dir}{abs(spend_change):.0f}万"
     )
 
     # 未来方向

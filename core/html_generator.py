@@ -4,6 +4,60 @@
 import json
 import pandas as pd
 from pathlib import Path
+from datetime import datetime
+
+
+def _build_strategy_annotations_markup(annotations: list, month_labels: list) -> dict:
+    """
+    构建策略标注的ECharts markLine配置。
+
+    Args:
+        annotations: 策略标注列表，格式 [{'date': 'YYYY-MM-DD', 'label': '标注文字'}, ...]
+        month_labels: 月份标签列表，格式 ['Jul-25', 'Aug-25', ...]
+
+    Returns:
+        ECharts markLine配置字典
+    """
+    if not annotations:
+        return {}
+
+    mark_line_data = []
+
+    for anno in annotations:
+        anno_date = pd.Timestamp(anno['date'])
+        anno_label = anno['label']
+
+        # 找到对应的xAxis索引
+        for idx, month_label in enumerate(month_labels):
+            # 将month_label转换为日期进行对比
+            # 格式：Jul-25 -> 2025-07-01
+            month_date = pd.to_datetime(month_label, format='%b-%y')
+            if month_date.year == anno_date.year and month_date.month == anno_date.month:
+                mark_line_data.append({
+                    'xAxis': idx,
+                    'label': {
+                        'formatter': anno_label,
+                        'position': 'end',
+                        'fontSize': 10,
+                        'color': '#D73027',
+                        'fontWeight': 'bold'
+                    },
+                    'lineStyle': {
+                        'color': '#D73027',
+                        'type': 'dashed',
+                        'width': 2
+                    }
+                })
+                break
+
+    if not mark_line_data:
+        return {}
+
+    return {
+        'silent': False,
+        'symbol': ['none', 'arrow'],
+        'data': mark_line_data
+    }
 
 
 def _build_stacked_bar_line_option(pivot_d, meta, styles):
@@ -201,6 +255,7 @@ def _build_multi_line_grouped_option(pivot_d, meta, styles):
         'series': series_items,
         'legend_data': list(ec_data.keys()),
         'chart_title': chart_title,
+        'yaxis_formatter': "'{value}%'",  # 添加缺失的formatter
         'is_percentage': True
     }
 
@@ -305,6 +360,24 @@ def generate(pivot, meta: dict, styles: dict, lines: list[str],
         raise ValueError(f"未注册的 ECharts builder: {chart_type}")
 
     option_data = builder(pivot_d, meta, styles)
+
+    # 添加策略标注（如果存在）
+    strategy_annotations = meta.get('strategy_annotations', [])
+    if strategy_annotations and 'month_labels' in option_data:
+        mark_line = _build_strategy_annotations_markup(
+            strategy_annotations,
+            option_data['month_labels']
+        )
+        if mark_line and 'series' in option_data and len(option_data['series']) > 0:
+            # 将markLine添加到第一个series（通常是主图表）
+            # 如果是折线图，添加到第一个line series
+            for i, series_item in enumerate(option_data['series']):
+                if series_item.get('type') == 'line':
+                    option_data['series'][i]['markLine'] = mark_line
+                    break
+            else:
+                # 如果没有line series，添加到第一个series
+                option_data['series'][0]['markLine'] = mark_line
 
     summary_html = "<br/>".join(lines)
 
@@ -514,6 +587,15 @@ window.addEventListener('resize', function(){{ chart.resize(); }});
     else:
         raise ValueError(f"未实现的 HTML 模板: {chart_type}")
 
-    html_path = output_dir / f"{chart_title.replace(' ', '_')}.html"
+    # 清理文件名中的非法字符
+    safe_title = chart_title.replace(' ', '_')
+    # Windows文件名中不允许的字符: < > : " / \ | ? *
+    for char in ['<', '>', ':', '"', '/', '\\', '|', '?', '*']:
+        safe_title = safe_title.replace(char, '_')
+    indicator_id = str(meta.get('indicator_id', '')).strip()
+    if indicator_id:
+        html_path = output_dir / f"{indicator_id}_{safe_title}.html"
+    else:
+        html_path = output_dir / f"{safe_title}.html"
     html_path.write_text(html, encoding='utf-8')
     return html_path

@@ -131,7 +131,7 @@ def add_dual_chart_slide(prs: Presentation, left_meta: dict, right_meta: dict,
     ul.line.fill.background()
 
     # ── Summary text ──
-    tb2 = slide.shapes.add_textbox(Cm(2), Cm(3.0), Cm(29), Cm(2.0))
+    tb2 = slide.shapes.add_textbox(Cm(2), Cm(2.95), Cm(29), Cm(2.8))
     tf2 = tb2.text_frame
     tf2.word_wrap = True
     for i, line in enumerate(lines):
@@ -140,17 +140,17 @@ def add_dual_chart_slide(prs: Presentation, left_meta: dict, right_meta: dict,
         else:
             p2 = tf2.add_paragraph()
         p2.text = line
-        p2.font.size = Pt(12)  # 稍小一点
+        p2.font.size = Pt(11)
         p2.font.color.rgb = RGBColor(0x33, 0x33, 0x33)
         p2.font.name = font_family
-        p2.space_after = Pt(3)
-        p2.line_spacing = Pt(20)
+        p2.space_after = Pt(1.5)
+        p2.line_spacing = Pt(16)
 
     # ── Left chart image (等比例缩放，只指定宽度) ──
-    slide.shapes.add_picture(str(left_chart_path), Cm(0.8), Cm(5.9), width=Cm(15.6), height=Cm(11.7))
+    slide.shapes.add_picture(str(left_chart_path), Cm(0.8), Cm(6.7), width=Cm(15.6), height=Cm(10.9))
 
     # ── Right chart image (等比例缩放，只指定宽度) ──
-    slide.shapes.add_picture(str(right_chart_path), Cm(16.7), Cm(5.9), width=Cm(15.6), height=Cm(11.7))
+    slide.shapes.add_picture(str(right_chart_path), Cm(16.7), Cm(6.7), width=Cm(15.6), height=Cm(10.9))
 
     # ── Red square decoration (top right) ──
     sq = slide.shapes.add_shape(MSO_SHAPE.RECTANGLE, Cm(31.5), Cm(1.0), Cm(1.2), Cm(1.2))

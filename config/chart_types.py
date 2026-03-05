@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+﻿# -*- coding: utf-8 -*-
 """图表类型注册表 — chart_type 名称 → 渲染函数映射
 
 每个渲染函数签名：
@@ -35,11 +35,11 @@ def _fmt_value(v: float, label: str) -> str:
     return f'{v:.0f}'
 
 
-def _label_offset(vals: np.ndarray) -> float:
+def _label_offset(vals: np.ndarray, ratio: float = 0.012) -> float:
     vmax = float(np.nanmax(vals)) if len(vals) else 0.0
     vmin = float(np.nanmin(vals)) if len(vals) else 0.0
     span = max(vmax - vmin, abs(vmax), 1e-6)
-    return max(span * 0.02, abs(vmax) * 0.01, 1e-6)
+    return max(span * ratio, abs(vmax) * ratio * 0.4, 1e-6)
 
 
 def _set_embedded_chart_title(ax, meta: dict, font_prop) -> None:
@@ -94,7 +94,7 @@ def render_stacked_bar_line(pivot_display, meta, styles, font_prop):
                 cy = b + v * 0.25
             lx = x[i] + bw / 2 - 0.04
             ax.text(lx, cy, f'{v:.1f}{unit}', ha='right', va='center',
-                    fontsize=7.5, fontweight='bold', color=label_color,
+                    fontsize=8.5, fontweight='bold', color=label_color,
                     fontproperties=font_prop, zorder=6)
 
         bottoms += vals
@@ -107,7 +107,7 @@ def render_stacked_bar_line(pivot_display, meta, styles, font_prop):
                 markeredgewidth=0.8, zorder=5, label='总计')
         for i, v in enumerate(totals):
             ax.text(x[i], v + 0.25, f'{v:.1f}{unit}', ha='center', va='bottom',
-                    fontsize=8.5, fontweight='bold', color=line_color,
+                    fontsize=9.5, fontweight='bold', color=line_color,
                     fontproperties=font_prop, zorder=6)
 
     # ── Axis / styling ──
@@ -167,12 +167,12 @@ def render_dual_line(pivot_display, meta, styles, font_prop):
              markeredgewidth=0.8, zorder=5, label=cat1)
 
     _set_embedded_chart_title(ax1, meta, font_prop)
-    off1 = _label_offset(vals1)
+    off1 = _label_offset(vals1, ratio=0.010)
 
     # 数据标签（百分比格式，1位小数，靠近数据点）
     for i, v in enumerate(vals1):
         ax1.text(x[i], v + off1, _fmt_value(v, cat1), ha='center', va='bottom',
-                 fontsize=8.5, fontweight='bold', color=color1,
+                 fontsize=9.5, fontweight='bold', color=color1,
                  fontproperties=font_prop, zorder=6)
 
     # ── 第二条折线（右Y轴） ──
@@ -184,11 +184,11 @@ def render_dual_line(pivot_display, meta, styles, font_prop):
                  markerfacecolor=color2, markeredgecolor='white',
                  markeredgewidth=0.8, zorder=5, label=cat2)
 
-        off2 = _label_offset(vals2)
+        off2 = _label_offset(vals2, ratio=0.010)
         # 数据标签
         for i, v in enumerate(vals2):
             ax2.text(x[i], v + off2, _fmt_value(v, cat2), ha='center', va='bottom',
-                     fontsize=8.5, fontweight='bold', color=color2,
+                     fontsize=9.5, fontweight='bold', color=color2,
                      fontproperties=font_prop, zorder=6)
 
     # ── Axis / styling ──
@@ -261,7 +261,7 @@ def render_bar_multi_line(pivot_display, meta, styles, font_prop):
     for i, v in enumerate(bar_vals):
         if v > 100:  # 只标注较大的值
             ax1.text(x[i], v * 0.05, f'{v:.0f}', ha='center', va='bottom',
-                     fontsize=7.5, fontweight='bold', color='#555',
+                     fontsize=8.5, fontweight='bold', color='#555',
                      fontproperties=font_prop, zorder=6)
 
     ax1.set_ylabel(bar_col, fontsize=9.5, fontweight='bold', color='#333', fontproperties=font_prop)
@@ -281,10 +281,10 @@ def render_bar_multi_line(pivot_display, meta, styles, font_prop):
                  markeredgewidth=0.8, zorder=5, label=cat)
 
         # 数据标签（百分比格式，1位小数，点上方）
-        off = _label_offset(vals)
+        off = _label_offset(vals, ratio=0.010)
         for i, v in enumerate(vals):
             ax2.text(x[i], v + off, _fmt_pct(v, cat), ha='center', va='bottom',
-                     fontsize=8.5, fontweight='bold', color=color,
+                     fontsize=9.5, fontweight='bold', color=color,
                      fontproperties=font_prop, zorder=6)
 
     ax2.set_ylabel('过件率', fontsize=9.5, fontweight='bold', color='#333', fontproperties=font_prop)
@@ -344,12 +344,12 @@ def render_single_line(pivot_display, meta, styles, font_prop):
             markerfacecolor=color, markeredgecolor='white',
             markeredgewidth=0.8, zorder=5, label=cat)
 
-    off = _label_offset(vals)
+    off = _label_offset(vals, ratio=0.0018)
 
     # 数据标签（百分比格式，1位小数，靠近数据点）
     for i, v in enumerate(vals):
         ax.text(x[i], v + off, _fmt_value(v, cat), ha='center', va='bottom',
-                fontsize=8.5, fontweight='bold', color=color,
+                fontsize=9.5, fontweight='bold', color=color,
                 fontproperties=font_prop, zorder=6)
 
     # ── Axis / styling ──
@@ -402,7 +402,7 @@ def render_multi_line_grouped(pivot_display, meta, styles, font_prop):
             continue
         vals = pv[cat].values.astype(float)
         color = colors.get(cat, '#999999')
-        off = _label_offset(vals)
+        off = _label_offset(vals, ratio=0.006)
         ax.plot(x, vals, 'o-', color=color, linewidth=2.2, markersize=5,
                 markerfacecolor=color, markeredgecolor='white',
                 markeredgewidth=0.8, zorder=5, label=cat)
@@ -411,7 +411,7 @@ def render_multi_line_grouped(pivot_display, meta, styles, font_prop):
         for i, v in enumerate(vals):
             if i % 2 == 0 or i == n_months - 1:  # 每隔一个月标注
                 ax.text(x[i], v + off, _fmt_value(v, cat), ha='center', va='bottom',
-                        fontsize=7.5, fontweight='bold', color=color,
+                        fontsize=8.5, fontweight='bold', color=color,
                         fontproperties=font_prop, zorder=6)
 
     # ── Axis / styling ──
@@ -470,7 +470,7 @@ def render_dual_line_with_bar(pivot_display, meta, styles, font_prop):
     for i, v in enumerate(bar_vals):
         if v > 0:
             ax1.text(x[i], v * 0.05, f'{v:.1f}', ha='center', va='bottom',
-                     fontsize=7.5, fontweight='bold', color='#555',
+                     fontsize=8.5, fontweight='bold', color='#555',
                      fontproperties=font_prop, zorder=6)
 
     ax1.set_ylabel(bar_col, fontsize=9.5, fontweight='bold', color='#333', fontproperties=font_prop)
@@ -492,7 +492,7 @@ def render_dual_line_with_bar(pivot_display, meta, styles, font_prop):
                  markeredgewidth=0.8, zorder=5, label=cat)
 
         # 数据标签
-        off = _label_offset(vals)
+        off = _label_offset(vals, ratio=0.010)
         for i, v in enumerate(vals):
             # 根据值的大小决定标签格式
             if v < 1:  # 百分比
@@ -500,7 +500,7 @@ def render_dual_line_with_bar(pivot_display, meta, styles, font_prop):
             else:  # 数值
                 label_text = f'{v:.0f}'
             ax2.text(x[i], v + off, label_text, ha='center', va='bottom',
-                     fontsize=8.5, fontweight='bold', color=color,
+                     fontsize=9.5, fontweight='bold', color=color,
                      fontproperties=font_prop, zorder=6)
 
     ax2.set_ylabel('转化指标', fontsize=9.5, fontweight='bold', color='#333', fontproperties=font_prop)
@@ -565,7 +565,7 @@ def render_stacked_column_chart(pivot_display, meta, styles, font_prop):
         for i, v in enumerate(bar_vals):
             if v > 0:
                 ax1.text(x[i] + offset, v * 0.05, f'{v:.0f}', ha='center', va='bottom',
-                         fontsize=7.5, fontweight='bold', color='#555',
+                         fontsize=8.5, fontweight='bold', color='#555',
                          fontproperties=font_prop, zorder=6)
 
     ax1.set_ylabel('数量', fontsize=9.5, fontweight='bold', color='#333', fontproperties=font_prop)
@@ -586,10 +586,10 @@ def render_stacked_column_chart(pivot_display, meta, styles, font_prop):
                      markeredgewidth=0.8, zorder=5, label=line_col)
 
             # 数据标签（百分比格式）
-            off = _label_offset(vals)
+            off = _label_offset(vals, ratio=0.010)
             for i, v in enumerate(vals):
                 ax2.text(x[i], v + off, _fmt_pct(v, line_col), ha='center', va='bottom',
-                         fontsize=8.5, fontweight='bold', color=color,
+                         fontsize=9.5, fontweight='bold', color=color,
                          fontproperties=font_prop, zorder=6)
 
             ax2.set_ylabel('率指标', fontsize=9.5, fontweight='bold', color='#333', fontproperties=font_prop)
