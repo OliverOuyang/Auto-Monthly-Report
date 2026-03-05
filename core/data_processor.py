@@ -403,3 +403,326 @@ def _build_channel_overview_pivot(excel_path: str, meta: dict, channel: str) -> 
     result = result.loc[result.index <= report_month].sort_index()
 
     return result
+
+
+# ============================================================================
+# 抖音渠道数据处理函数 (P16-18)
+# ============================================================================
+
+def build_douyin_request_pivot(excel_path: str, meta: dict) -> pd.DataFrame:
+    """构建抖音请求及参竞透视表(P16) - 日请求量 + 参��率"""
+    report_month = pd.Timestamp(meta['report_month'] + '-01')
+    df = pd.read_excel(excel_path, sheet_name='6_抖音')
+    df['mon'] = pd.to_datetime(df['mon'])
+    df = df.replace('\\N', np.nan)
+
+    numeric_cols = ['req_cnt', 'cj_cnt']
+    for col in numeric_cols:
+        df[col] = pd.to_numeric(df[col], errors='coerce').fillna(0)
+
+    df_monthly = df.groupby('mon').agg({
+        'req_cnt': 'sum',
+        'cj_cnt': 'sum'
+    }).reset_index()
+    df_monthly.set_index('mon', inplace=True)
+
+    all_indicators = {}
+    df_monthly['days_in_month'] = df_monthly.index.to_series().apply(lambda x: x.days_in_month)
+    # 日请求量（亿）
+    all_indicators['日请求量'] = (df_monthly['req_cnt'] / 100000000 / df_monthly['days_in_month'])
+    # 参竞率 = cj_cnt / req_cnt
+    all_indicators['参竞率'] = (df_monthly['cj_cnt'] / df_monthly['req_cnt']).replace([np.inf, -np.inf], np.nan).fillna(0)
+
+    result = pd.DataFrame(all_indicators, index=df_monthly.index)
+    result.index.name = 'month'
+    result = result.loc[result.index <= report_month].sort_index()
+
+    # 自动剔除参竞率为0的月份（无效数据）
+    if '参竞率' in result.columns:
+        result = result[result['参竞率'] > 0]
+
+    return result
+
+
+def build_douyin_win_rate_pivot(excel_path: str, meta: dict) -> pd.DataFrame:
+    """构建抖音竞得率透视表(P17) - 整体 + 按v8prea分组(1Q/2Q/3Q/UNK)"""
+    report_month = pd.Timestamp(meta['report_month'] + '-01')
+    categories = meta.get('categories', [])
+    df = pd.read_excel(excel_path, sheet_name='6_抖音')
+    df['mon'] = pd.to_datetime(df['mon'])
+    df = df.replace('\\N', np.nan)
+
+    numeric_cols = ['cj_cnt', 'exp_cnt']
+    for col in numeric_cols:
+        df[col] = pd.to_numeric(df[col], errors='coerce').fillna(0)
+
+    df_overall = df.groupby('mon').agg({'cj_cnt': 'sum', 'exp_cnt': 'sum'}).reset_index()
+    df_overall.set_index('mon', inplace=True)
+
+    all_indicators = {}
+    all_indicators['整体竞得率'] = (df_overall['exp_cnt'] / df_overall['cj_cnt']).replace([np.inf, -np.inf], np.nan).fillna(0)
+
+    if 'v8prea' in df.columns:
+        for group_name in ['1Q', '2Q', '3Q', 'UNK']:
+            group_key = f'{group_name}竞得率'
+            if group_key in categories:
+                if group_name == 'UNK':
+                    df_group = df[df['v8prea'].isna() | (df['v8prea'] == 'UNK')]
+                else:
+                    df_group = df[df['v8prea'] == group_name]
+
+                df_group_monthly = df_group.groupby('mon').agg({'cj_cnt': 'sum', 'exp_cnt': 'sum'}).reset_index()
+                df_group_monthly.set_index('mon', inplace=True)
+                all_indicators[group_key] = (df_group_monthly['exp_cnt'] / df_group_monthly['cj_cnt']).replace([np.inf, -np.inf], np.nan).fillna(0).reindex(df_overall.index, fill_value=0)
+
+    result = pd.DataFrame(all_indicators, index=df_overall.index)
+    result.index.name = 'month'
+    result = result.loc[result.index <= report_month].sort_index()
+
+    # 自动剔除整体竞得率为0的月份（无效数据）
+    if '整体竞得率' in result.columns:
+        result = result[result['整体竞得率'] > 0]
+
+    return result
+
+
+def build_douyin_conversion_pivot(excel_path: str, meta: dict) -> pd.DataFrame:
+    """构建抖音曝光至授信转化透视表(P18) - 曝光-授信率*1000 + CTR + CVR"""
+    report_month = pd.Timestamp(meta['report_month'] + '-01')
+    df = pd.read_excel(excel_path, sheet_name='6_抖音')
+    df['mon'] = pd.to_datetime(df['mon'])
+    df = df.replace('\\N', np.nan)
+
+    numeric_cols = ['exp_cnt', 'clk_cnt', 't0_adt_cnt']
+    for col in numeric_cols:
+        df[col] = pd.to_numeric(df[col], errors='coerce').fillna(0)
+
+    df_monthly = df.groupby('mon').agg({
+        'exp_cnt': 'sum',
+        'clk_cnt': 'sum',
+        't0_adt_cnt': 'sum'
+    }).reset_index()
+    df_monthly.set_index('mon', inplace=True)
+
+    all_indicators = {}
+    # 曝光-授信率 = t0_adt_cnt / exp_cnt * 1000
+    all_indicators['曝光-授信'] = (df_monthly['t0_adt_cnt'] / df_monthly['exp_cnt'] * 1000).replace([np.inf, -np.inf], np.nan).fillna(0)
+    # CTR = clk_cnt / exp_cnt
+    all_indicators['CTR'] = (df_monthly['clk_cnt'] / df_monthly['exp_cnt']).replace([np.inf, -np.inf], np.nan).fillna(0)
+    # CVR = t0_adt_cnt / clk_cnt
+    all_indicators['CVR'] = (df_monthly['t0_adt_cnt'] / df_monthly['clk_cnt']).replace([np.inf, -np.inf], np.nan).fillna(0)
+
+    result = pd.DataFrame(all_indicators, index=df_monthly.index)
+    result.index.name = 'month'
+    result = result.loc[result.index <= report_month].sort_index()
+    return result
+
+# ============================================================================
+# 抖音渠道左右分图包装函数
+# ============================================================================
+
+def build_douyin_win_rate_overall_pivot(excel_path: str, meta: dict) -> pd.DataFrame:
+    """P17左图：抖音整体竞得率"""
+    full_pivot = build_douyin_win_rate_pivot(excel_path, meta)
+    return full_pivot[['整体竞得率']]
+
+
+def build_douyin_win_rate_grouped_pivot(excel_path: str, meta: dict) -> pd.DataFrame:
+    """P17右图：抖音分组竞得率(1Q/2Q/3Q/UNK)"""
+    full_pivot = build_douyin_win_rate_pivot(excel_path, meta)
+    grouped_cols = [col for col in full_pivot.columns if col != '整体竞得率']
+    return full_pivot[grouped_cols]
+
+
+def build_douyin_conversion_overall_pivot(excel_path: str, meta: dict) -> pd.DataFrame:
+    """P18左图：抖音曝光-授信率*1000"""
+    full_pivot = build_douyin_conversion_pivot(excel_path, meta)
+    return full_pivot[['曝光-授信']]
+
+
+def build_douyin_conversion_funnel_pivot(excel_path: str, meta: dict) -> pd.DataFrame:
+    """P18右图：抖音分环节转化(CTR+CVR)"""
+    full_pivot = build_douyin_conversion_pivot(excel_path, meta)
+    return full_pivot[['CTR', 'CVR']]
+
+
+def _pick_col(df: pd.DataFrame, candidates: list[str]) -> str:
+    for name in candidates:
+        if name in df.columns:
+            return name
+    raise KeyError(f"None of columns found: {candidates}")
+
+
+def _safe_ratio(numer: pd.Series, denom: pd.Series, scale: float = 1.0) -> pd.Series:
+    return (numer / denom * scale).replace([np.inf, -np.inf], np.nan).fillna(0)
+
+
+# ============================================================================
+# 腾讯渠道数据处理函数 (P12-14)
+# ============================================================================
+
+def build_tencent_request_pivot(excel_path: str, meta: dict) -> pd.DataFrame:
+    report_month = pd.Timestamp(meta['report_month'] + '-01')
+    df = pd.read_excel(excel_path, sheet_name='5_腾讯').replace('\\N', np.nan)
+    df['mon'] = pd.to_datetime(df['mon'])
+
+    request_col = _pick_col(df, ['cnt_request', 'req_cnt'])
+    participate_col = _pick_col(df, ['cnt_request_yes', 'cj_cnt'])
+    for col in [request_col, participate_col]:
+        df[col] = pd.to_numeric(df[col], errors='coerce').fillna(0)
+
+    monthly = df.groupby('mon')[[request_col, participate_col]].sum()
+    daily_request = monthly[request_col] / monthly.index.to_series().dt.days_in_month / 100000000
+    participate_rate = _safe_ratio(monthly[participate_col], monthly[request_col])
+
+    result = pd.DataFrame({
+        '日请求量': daily_request,
+        '参竞率': participate_rate,
+    }, index=monthly.index)
+    result.index.name = 'month'
+    return result.loc[result.index <= report_month].sort_index()
+
+
+def build_tencent_win_rate_pivot(excel_path: str, meta: dict) -> pd.DataFrame:
+    report_month = pd.Timestamp(meta['report_month'] + '-01')
+    categories = meta.get('categories', [])
+    df = pd.read_excel(excel_path, sheet_name='5_腾讯').replace('\\N', np.nan)
+    df['mon'] = pd.to_datetime(df['mon'])
+
+    group_col = _pick_col(df, ['v7prea', 'v8prea'])
+    participate_col = _pick_col(df, ['cnt_request_yes', 'cj_cnt'])
+    win_col = _pick_col(df, ['cnt_exposure', 'exp_cnt'])
+    for col in [participate_col, win_col]:
+        df[col] = pd.to_numeric(df[col], errors='coerce').fillna(0)
+
+    overall = df.groupby('mon')[[participate_col, win_col]].sum()
+    result_dict = {'整体竞得率': _safe_ratio(overall[win_col], overall[participate_col])}
+
+    for group_name in ['1Q', '2Q', '3Q', 'UNK']:
+        key = f'{group_name}竞得率'
+        if key not in categories:
+            continue
+        if group_name == 'UNK':
+            df_group = df[df[group_col].isna() | (df[group_col] == 'UNK')]
+        else:
+            df_group = df[df[group_col] == group_name]
+        grouped = df_group.groupby('mon')[[participate_col, win_col]].sum()
+        result_dict[key] = _safe_ratio(
+            grouped[win_col], grouped[participate_col]
+        ).reindex(overall.index, fill_value=0)
+
+    result = pd.DataFrame(result_dict, index=overall.index)
+    result.index.name = 'month'
+    result = result.loc[result.index <= report_month].sort_index()
+    if '整体竞得率' in result.columns:
+        result = result[result['整体竞得率'] > 0]
+    return result
+
+
+def build_tencent_conversion_pivot(excel_path: str, meta: dict) -> pd.DataFrame:
+    report_month = pd.Timestamp(meta['report_month'] + '-01')
+    df = pd.read_excel(excel_path, sheet_name='5_腾讯').replace('\\N', np.nan)
+    df['mon'] = pd.to_datetime(df['mon'])
+
+    exposure_col = _pick_col(df, ['cnt_exposure', 'exp_cnt'])
+    click_col = _pick_col(df, ['cnt_click', 'clk_cnt'])
+    adt_col = _pick_col(df, ['cnt_adt_t0', 't0_adt_cnt'])
+    for col in [exposure_col, click_col, adt_col]:
+        df[col] = pd.to_numeric(df[col], errors='coerce').fillna(0)
+
+    monthly = df.groupby('mon')[[exposure_col, click_col, adt_col]].sum()
+    result = pd.DataFrame({
+        '曝光-授信': _safe_ratio(monthly[adt_col], monthly[exposure_col], scale=1000),
+        'CTR': _safe_ratio(monthly[click_col], monthly[exposure_col]),
+        'CVR': _safe_ratio(monthly[adt_col], monthly[click_col]),
+    }, index=monthly.index)
+    result.index.name = 'month'
+    return result.loc[result.index <= report_month].sort_index()
+
+
+def build_tencent_win_rate_overall_pivot(excel_path: str, meta: dict) -> pd.DataFrame:
+    full_pivot = build_tencent_win_rate_pivot(excel_path, meta)
+    return full_pivot[['整体竞得率']]
+
+
+def build_tencent_win_rate_grouped_pivot(excel_path: str, meta: dict) -> pd.DataFrame:
+    full_pivot = build_tencent_win_rate_pivot(excel_path, meta)
+    grouped_cols = [col for col in full_pivot.columns if col != '整体竞得率']
+    return full_pivot[grouped_cols]
+
+
+def build_tencent_conversion_overall_pivot(excel_path: str, meta: dict) -> pd.DataFrame:
+    full_pivot = build_tencent_conversion_pivot(excel_path, meta)
+    return full_pivot[['曝光-授信']]
+
+
+def build_tencent_conversion_funnel_pivot(excel_path: str, meta: dict) -> pd.DataFrame:
+    full_pivot = build_tencent_conversion_pivot(excel_path, meta)
+    return full_pivot[['CTR', 'CVR']]
+
+
+# ============================================================================
+# 精准渠道数据处理函数 (P20-21)
+# ============================================================================
+
+def build_jingzhun_attack_result_pivot(excel_path: str, meta: dict) -> pd.DataFrame:
+    report_month = pd.Timestamp(meta['report_month'] + '-01')
+    df = pd.read_excel(excel_path, sheet_name='7_精准').replace('\\N', np.nan)
+    df['mon'] = pd.to_datetime(df['mon'])
+
+    attack_col = _pick_col(df, ['force_attack_count', 'attack_cnt'])
+    allowed_col = _pick_col(df, ['allowed_cnt', 'allowed_count'])
+    for col in [attack_col, allowed_col]:
+        df[col] = pd.to_numeric(df[col], errors='coerce').fillna(0)
+
+    monthly = df.groupby('mon')[[attack_col, allowed_col]].sum()
+    days = monthly.index.to_series().dt.days_in_month
+    result = pd.DataFrame({
+        '日均撞库量（亿）': monthly[attack_col] / 100000000 / days,
+        '日均可营销量（亿）': monthly[allowed_col] / 100000000 / days,
+        '可营销率': _safe_ratio(monthly[allowed_col], monthly[attack_col]),
+    }, index=monthly.index)
+    result.index.name = 'month'
+    return result.loc[result.index <= report_month].sort_index()
+
+
+def build_jingzhun_conversion_pivot(excel_path: str, meta: dict) -> pd.DataFrame:
+    report_month = pd.Timestamp(meta['report_month'] + '-01')
+    df_jingzhun = pd.read_excel(excel_path, sheet_name='7_精准').replace('\\N', np.nan)
+    df_jingzhun['mon'] = pd.to_datetime(df_jingzhun['mon'])
+    allowed_col = _pick_col(df_jingzhun, ['allowed_cnt', 'allowed_count'])
+    df_jingzhun[allowed_col] = pd.to_numeric(df_jingzhun[allowed_col], errors='coerce').fillna(0)
+    allowed_series = df_jingzhun.groupby('mon')[allowed_col].sum()
+
+    df_conv = pd.read_excel(excel_path, sheet_name='4_转化').replace('\\N', np.nan)
+    df_conv['mon'] = pd.to_datetime(df_conv['mon'])
+    channel_col = _pick_col(df_conv, ['channel', '渠道类别'])
+    login_col = _pick_col(df_conv, ['login_cnt'])
+    adt_col = _pick_col(df_conv, ['t0_adt_cnt'])
+    for col in [login_col, adt_col]:
+        df_conv[col] = pd.to_numeric(df_conv[col], errors='coerce').fillna(0)
+
+    df_conv = df_conv[df_conv[channel_col] == '精准营销']
+    conv_monthly = df_conv.groupby('mon')[[login_col, adt_col]].sum()
+    conv_monthly = conv_monthly.reindex(allowed_series.index, fill_value=0)
+
+    result = pd.DataFrame(
+        {
+            '千次可营销-授信率': _safe_ratio(conv_monthly[adt_col], allowed_series, scale=1000),
+            '千次可营销-首登率': _safe_ratio(conv_monthly[login_col], allowed_series, scale=1000),
+            '首登-授信率': _safe_ratio(conv_monthly[adt_col], conv_monthly[login_col]),
+        },
+        index=allowed_series.index,
+    )
+    result.index.name = 'month'
+    return result.loc[result.index <= report_month].sort_index()
+
+
+def build_jingzhun_conversion_overall_pivot(excel_path: str, meta: dict) -> pd.DataFrame:
+    full_pivot = build_jingzhun_conversion_pivot(excel_path, meta)
+    return full_pivot[['千次可营销-授信率']]
+
+
+def build_jingzhun_conversion_funnel_pivot(excel_path: str, meta: dict) -> pd.DataFrame:
+    full_pivot = build_jingzhun_conversion_pivot(excel_path, meta)
+    return full_pivot[['千次可营销-首登率', '首登-授信率']]

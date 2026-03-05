@@ -39,7 +39,7 @@ def _label_offset(vals: np.ndarray) -> float:
     vmax = float(np.nanmax(vals)) if len(vals) else 0.0
     vmin = float(np.nanmin(vals)) if len(vals) else 0.0
     span = max(vmax - vmin, abs(vmax), 1e-6)
-    return span * 0.03
+    return max(span * 0.02, abs(vmax) * 0.01, 1e-6)
 
 
 def _set_embedded_chart_title(ax, meta: dict, font_prop) -> None:
@@ -281,8 +281,9 @@ def render_bar_multi_line(pivot_display, meta, styles, font_prop):
                  markeredgewidth=0.8, zorder=5, label=cat)
 
         # 数据标签（百分比格式，1位小数，点上方）
+        off = _label_offset(vals)
         for i, v in enumerate(vals):
-            ax2.text(x[i], v + 0.005, _fmt_pct(v, cat), ha='center', va='bottom',
+            ax2.text(x[i], v + off, _fmt_pct(v, cat), ha='center', va='bottom',
                      fontsize=8.5, fontweight='bold', color=color,
                      fontproperties=font_prop, zorder=6)
 
@@ -343,7 +344,6 @@ def render_single_line(pivot_display, meta, styles, font_prop):
             markerfacecolor=color, markeredgecolor='white',
             markeredgewidth=0.8, zorder=5, label=cat)
 
-    _set_embedded_chart_title(ax, meta, font_prop)
     off = _label_offset(vals)
 
     # 数据标签（百分比格式，1位小数，靠近数据点）
@@ -492,13 +492,14 @@ def render_dual_line_with_bar(pivot_display, meta, styles, font_prop):
                  markeredgewidth=0.8, zorder=5, label=cat)
 
         # 数据标签
+        off = _label_offset(vals)
         for i, v in enumerate(vals):
             # 根据值的大小决定标签格式
             if v < 1:  # 百分比
                 label_text = _fmt_pct(v, cat)
             else:  # 数值
                 label_text = f'{v:.0f}'
-            ax2.text(x[i], v + max(vals) * 0.02, label_text, ha='center', va='bottom',
+            ax2.text(x[i], v + off, label_text, ha='center', va='bottom',
                      fontsize=8.5, fontweight='bold', color=color,
                      fontproperties=font_prop, zorder=6)
 
@@ -585,8 +586,9 @@ def render_stacked_column_chart(pivot_display, meta, styles, font_prop):
                      markeredgewidth=0.8, zorder=5, label=line_col)
 
             # 数据标签（百分比格式）
+            off = _label_offset(vals)
             for i, v in enumerate(vals):
-                ax2.text(x[i], v + 0.005, _fmt_pct(v, line_col), ha='center', va='bottom',
+                ax2.text(x[i], v + off, _fmt_pct(v, line_col), ha='center', va='bottom',
                          fontsize=8.5, fontweight='bold', color=color,
                          fontproperties=font_prop, zorder=6)
 

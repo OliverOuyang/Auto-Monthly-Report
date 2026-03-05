@@ -379,34 +379,50 @@ indicators:
   - indicator_id: jingzhun_attack_result
     slide_order: 20
     chart_type: stacked_column_chart
-    chart_title: 精准-授库结果
-    slide_title: 精准营销渠道详细分析：授库结果
+    chart_title: 精准撞库结果
+    slide_title: 精准转化-撞库至可营销
     raw_sheet: 7_精准
     categories:
-      - 授库量
-      - 可营销量
+      - 日均撞库量（亿）
+      - 日均可营销量（亿）
       - 可营销率
     show_total_line: false
     unit_divisor: 1.0
-    analysis_template: jingzhun_attack
+    analysis_template: generic_trend
     data_source_type: derived
     use_llm_analysis: true
 
-  - indicator_id: jingzhun_conversion
+  - indicator_id: jingzhun_conversion_overall
     slide_order: 21
-    chart_type: dual_line
-    chart_title: 精准-可营销转化
-    slide_title: 精准营销渠道详细分析：可营销转化率
+    chart_type: single_line
+    chart_title: 可营销-授信率
+    slide_title: 精准转化-可营销至授信
     raw_sheet: 7_精准
     categories:
-      - 可营销量
-      - 实际营销量
-      - 转化率
+      - 千次可营销-授信率
     show_total_line: false
     unit_divisor: 1.0
-    analysis_template: jingzhun_conversion
+    analysis_template: generic_trend
     data_source_type: derived
     use_llm_analysis: true
+    is_left_chart: true
+
+  - indicator_id: jingzhun_conversion_funnel
+    slide_order: 21
+    chart_type: dual_line
+    chart_title: 分环节转化
+    slide_title: ""
+    raw_sheet: 7_精准
+    categories:
+      - 千次可营销-首登率
+      - 首登-授信率
+    show_total_line: false
+    unit_divisor: 1.0
+    analysis_template: generic_trend
+    data_source_type: derived
+    use_llm_analysis: true
+    is_right_chart: true
+    merge_with_prev: true
 
 # ============================================================================
 # 样式配置
@@ -460,12 +476,13 @@ styles:
     授信数: '#FFC000'
     CTR: '#4472C4'
     CVR: '#ED7D31'
-    # 新增：精准授库指标
-    授库量: '#4472C4'
-    可营销量: '#ED7D31'
+    # 新增：精准授库/转化指标
+    日均撞库量（亿）: '#4472C4'
+    日均可营销量（亿）: '#ED7D31'
     可营销率: '#808080'
-    实际营销量: '#FFC000'
-    转化率: '#70AD47'
+    千次可营销-授信率: '#4472C4'
+    千次可营销-首登率: '#4472C4'
+    首登-授信率: '#ED7D31'
 
   global:
     title_color: '#8B4513'
