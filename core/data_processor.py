@@ -5,6 +5,15 @@ import pandas as pd
 import numpy as np
 
 
+def _apply_period(df: pd.DataFrame, meta: dict) -> pd.DataFrame:
+    report_month = pd.Timestamp(meta['report_month'] + '-01')
+    out = df.loc[df.index <= report_month]
+    start_month = meta.get('start_month')
+    if start_month:
+        out = out.loc[out.index >= pd.Timestamp(str(start_month) + '-01')]
+    return out.sort_index()
+
+
 def build_pivot(raw: pd.DataFrame, meta: dict) -> pd.DataFrame:
     """
     按 meta 配置从 raw DataFrame 生成透视表。
@@ -23,7 +32,6 @@ def build_pivot(raw: pd.DataFrame, meta: dict) -> pd.DataFrame:
     categories = meta['categories']
     filter_exclude = meta.get('filter_exclude', [])
     merge_rules = meta.get('merge_rules', {})
-    report_month = pd.Timestamp(meta['report_month'] + '-01')
     indicator_id = meta.get('indicator_id', '')
 
     df = raw.copy()
@@ -55,8 +63,8 @@ def build_pivot(raw: pd.DataFrame, meta: dict) -> pd.DataFrame:
         fill_value=0
     ).sort_index()
 
-    # 4. 截止到 report_month
-    pivot = pivot.loc[pivot.index <= report_month]
+    # 4. 期间过滤（含 start_month 可选）
+    pivot = _apply_period(pivot, meta)
 
     # 5. 按 categories 排序列
     pivot = pivot.reindex(columns=categories, fill_value=0)
@@ -253,8 +261,7 @@ def build_quality_credit_pivot(excel_path: str, meta: dict) -> pd.DataFrame:
 
     result = pd.DataFrame(result_dict, index=all_months)
     result.index.name = 'month'
-
-    return result
+    return _apply_period(result, meta)
 
 
 def build_channel_overview_tencent_pivot(excel_path: str, meta: dict) -> pd.DataFrame:
@@ -404,8 +411,8 @@ def _build_channel_overview_pivot(excel_path: str, meta: dict, channel: str) -> 
     result = pd.DataFrame(result_dict, index=df_monthly.index)
     result.index.name = 'month'
 
-    # 截止到 report_month
-    result = result.loc[result.index <= report_month].sort_index()
+    # 期间过滤（含 start_month 可选）
+    result = _apply_period(result, meta)
 
     return result
 
@@ -440,7 +447,7 @@ def build_douyin_request_pivot(excel_path: str, meta: dict) -> pd.DataFrame:
 
     result = pd.DataFrame(all_indicators, index=df_monthly.index)
     result.index.name = 'month'
-    result = result.loc[result.index <= report_month].sort_index()
+    result = _apply_period(result, meta)
 
     # 自动剔除参竞率为0的月份（无效数据）
     if '参竞率' in result.columns:
@@ -482,7 +489,7 @@ def build_douyin_win_rate_pivot(excel_path: str, meta: dict) -> pd.DataFrame:
 
     result = pd.DataFrame(all_indicators, index=df_overall.index)
     result.index.name = 'month'
-    result = result.loc[result.index <= report_month].sort_index()
+    result = _apply_period(result, meta)
 
     # 自动剔除整体竞得率为0的月份（无效数据）
     if '整体竞得率' in result.columns:
@@ -519,7 +526,7 @@ def build_douyin_conversion_pivot(excel_path: str, meta: dict) -> pd.DataFrame:
 
     result = pd.DataFrame(all_indicators, index=df_monthly.index)
     result.index.name = 'month'
-    result = result.loc[result.index <= report_month].sort_index()
+    result = _apply_period(result, meta)
     return result
 
 # ============================================================================
@@ -577,7 +584,7 @@ def build_tencent_request_pivot(excel_path: str, meta: dict) -> pd.DataFrame:
         df[col] = pd.to_numeric(df[col], errors='coerce').fillna(0)
 
     monthly = df.groupby('mon')[[request_col, participate_col]].sum()
-    daily_request = monthly[request_col] / monthly.index.to_series().dt.days_in_month / 100000000
+    daily_request = monthly[request_col] / monthly.index.to_series().dt.days_in_month / 100000000 / 2
     participate_rate = _safe_ratio(monthly[participate_col], monthly[request_col])
 
     result = pd.DataFrame({
@@ -585,7 +592,7 @@ def build_tencent_request_pivot(excel_path: str, meta: dict) -> pd.DataFrame:
         '参竞率': participate_rate,
     }, index=monthly.index)
     result.index.name = 'month'
-    return result.loc[result.index <= report_month].sort_index()
+    return _apply_period(result, meta)
 
 
 def build_tencent_win_rate_pivot(excel_path: str, meta: dict) -> pd.DataFrame:
@@ -601,7 +608,7 @@ def build_tencent_win_rate_pivot(excel_path: str, meta: dict) -> pd.DataFrame:
         df[col] = pd.to_numeric(df[col], errors='coerce').fillna(0)
 
     overall = df.groupby('mon')[[participate_col, win_col]].sum()
-    result_dict = {'整体竞得率': _safe_ratio(overall[win_col], overall[participate_col])}
+    result_dict = {'整体竞得率': _safe_ratio(overall[win_col], overall[participate_col], scale=2)}
 
     for group_name in ['1Q', '2Q', '3Q', 'UNK']:
         key = f'{group_name}竞得率'
@@ -613,12 +620,12 @@ def build_tencent_win_rate_pivot(excel_path: str, meta: dict) -> pd.DataFrame:
             df_group = df[df[group_col] == group_name]
         grouped = df_group.groupby('mon')[[participate_col, win_col]].sum()
         result_dict[key] = _safe_ratio(
-            grouped[win_col], grouped[participate_col]
+            grouped[win_col], grouped[participate_col], scale=2
         ).reindex(overall.index, fill_value=0)
 
     result = pd.DataFrame(result_dict, index=overall.index)
     result.index.name = 'month'
-    result = result.loc[result.index <= report_month].sort_index()
+    result = _apply_period(result, meta)
     if '整体竞得率' in result.columns:
         result = result[result['整体竞得率'] > 0]
     return result
@@ -642,7 +649,7 @@ def build_tencent_conversion_pivot(excel_path: str, meta: dict) -> pd.DataFrame:
         'CVR': _safe_ratio(monthly[adt_col], monthly[click_col]),
     }, index=monthly.index)
     result.index.name = 'month'
-    return result.loc[result.index <= report_month].sort_index()
+    return _apply_period(result, meta)
 
 
 def build_tencent_win_rate_overall_pivot(excel_path: str, meta: dict) -> pd.DataFrame:
@@ -688,7 +695,7 @@ def build_jingzhun_attack_result_pivot(excel_path: str, meta: dict) -> pd.DataFr
         '可营销率': _safe_ratio(monthly[allowed_col], monthly[attack_col]),
     }, index=monthly.index)
     result.index.name = 'month'
-    return result.loc[result.index <= report_month].sort_index()
+    return _apply_period(result, meta)
 
 
 def build_jingzhun_conversion_pivot(excel_path: str, meta: dict) -> pd.DataFrame:
@@ -720,7 +727,7 @@ def build_jingzhun_conversion_pivot(excel_path: str, meta: dict) -> pd.DataFrame
         index=allowed_series.index,
     )
     result.index.name = 'month'
-    return result.loc[result.index <= report_month].sort_index()
+    return _apply_period(result, meta)
 
 
 def build_jingzhun_conversion_overall_pivot(excel_path: str, meta: dict) -> pd.DataFrame:

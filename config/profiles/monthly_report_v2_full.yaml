@@ -59,6 +59,7 @@ indicators:
     unit: 万
     analysis_template: spend_mom
     data_source_type: single
+    start_month: 2025-01
 
   - indicator_id: cps_all_channel
     slide_order: 9
@@ -89,6 +90,7 @@ indicators:
     unit_divisor: 1.0
     analysis_template: quality_trend
     data_source_type: derived
+    start_month: 2025-01
 
   # ============================================================================
   # P11: 腾讯渠道转化总览 (分为左右两个子图)
@@ -322,6 +324,7 @@ indicators:
     unit_divisor: 1.0
     analysis_template: generic_trend
     data_source_type: derived
+    start_month: 2025-11
     is_left_chart: true
 
   - indicator_id: douyin_win_rate_grouped
@@ -339,6 +342,7 @@ indicators:
     unit_divisor: 1.0
     analysis_template: generic_trend
     data_source_type: derived
+    start_month: 2025-11
     is_right_chart: true
     merge_with_prev: true
 
@@ -479,7 +483,7 @@ styles:
     # 新增：精准授库/转化指标
     日均撞库量（亿）: '#4472C4'
     日均可营销量（亿）: '#ED7D31'
-    可营销率: '#808080'
+    可营销率: '#2E8B57'
     千次可营销-授信率: '#4472C4'
     千次可营销-首登率: '#4472C4'
     首登-授信率: '#ED7D31'
