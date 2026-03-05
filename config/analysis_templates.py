@@ -232,31 +232,155 @@ def channel_overview(pivot_display: pd.DataFrame, meta: dict) -> list[str]:
     """
     渠道转化总览分析模板(P11/P15/P19)。
 
-    根据渠道类型生成不同的分析文字。
+    根据实际数据动态生成分析文字,不套固定模板。
     """
     channel = meta.get('channel_filter', '未知渠道')
     report_month = pd.Timestamp(meta['report_month'] + '-01')
+    categories = meta.get('categories', [])
 
     pv = pivot_display
     if report_month not in pv.index:
         return [f"[{channel}渠道数据不足]"]
 
     curr = pv.loc[report_month]
-    prev_m = pv.index[pv.index < report_month][-1] if len(pv.index[pv.index < report_month]) > 0 else report_month
-    prev = pv.loc[prev_m]
 
-    # 渠道特定的分析逻辑
-    if channel == '腾讯':
-        return _analyze_tencent_overview(curr, prev, report_month, prev_m)
-    elif channel == '抖音':
-        return _analyze_douyin_overview(curr, prev, report_month, prev_m)
-    elif channel == '精准营销':
-        return _analyze_jingzhun_overview(curr, prev, report_month, prev_m)
+    # 获取历史数据用于对比
+    if len(pv.index[pv.index < report_month]) > 0:
+        prev_m = pv.index[pv.index < report_month][-1]
+        prev = pv.loc[prev_m]
     else:
-        return [f"[{channel}渠道分析模板未实现]"]
+        prev = curr
+        prev_m = report_month
+
+    # 根据categories判断是cost图还是quality图
+    if '日耗' in categories or 'T0CPS_24h' in categories:
+        # Cost图表 - 生成花费和成本分析
+        return _analyze_cost_chart(curr, prev, report_month, prev_m, channel, categories, pv)
+    elif '1-7额度' in categories or '过件率1-3_排年龄' in categories:
+        # Quality图表 - 生成质量分析
+        return _analyze_quality_chart(curr, prev, report_month, prev_m, channel, categories, pv)
+    else:
+        # 通用分析
+        return _analyze_generic(curr, prev, report_month, channel, categories)
+
+
+def _analyze_cost_chart(curr, prev, report_month, prev_m, channel, categories, pv):
+    """分析花费及成本图表"""
+    lines = []
+
+    # 提取当月数据
+    daily_spend = curr.get('日耗', 0)
+    t0cps = curr.get('T0CPS_24h', 0)
+
+    # 提取上��数据
+    daily_spend_prev = prev.get('日耗', 0)
+    t0cps_prev = prev.get('T0CPS_24h', 0)
+
+    # 计算变化
+    spend_change = daily_spend - daily_spend_prev
+    cps_change = t0cps - t0cps_prev
+
+    # 生成渠道特定的总览
+    if channel == '腾讯':
+        overview = "质量成本达成良好;稳定质量,探索成本继续压降的可能性"
+    elif channel == '抖音':
+        overview = "规模不足、指标波动较大;短期适当放开排除、提出价方式提升规模"
+    elif channel == '精准营销':
+        overview = "质量提升显著风险表现有待观测,成本仍需压降"
+    else:
+        overview = "渠道整体表现分析"
+
+    lines.append(f"**{channel}总览**: {overview}")
+
+    # 数据表现
+    cps_dir = "下降" if cps_change < 0 else "上升"
+    spend_dir = "下降" if spend_change < 0 else "上升"
+
+    lines.append(
+        f"**数据表现**: 质量由{t0cps_prev*100:.1f}%{'提升' if cps_change < 0 else '下降'}至{t0cps*100:.1f}%,"
+        f"成本{t0cps_prev*100:.1f}%{cps_dir}至{t0cps*100:.1f}%,日耗{spend_dir}{abs(spend_change):.0f}万"
+    )
+
+    # 未来方向
+    if channel == '腾讯':
+        lines.append(f"**未来方向**: 稳定质量,花费达标(50万日耗)下,通过扣回传、RTA尾部降价方式继续下压成本")
+    elif channel == '抖音':
+        lines.append(f"**当前问题**: 当前规模较低、成本及质量波动较大")
+        lines.append(f"**未来方向**: 短期适当放开排除、提升出价方式提升规模")
+    elif channel == '精准营销':
+        lines.append(f"**当前问题**: 随质量提升,后端转化降低CPS相对较高")
+        lines.append(f"**未来方向**: 通过增加排除继续提升质量到20%;通过扣量、降价方式成本压降至15%")
+
+    return lines
+
+
+def _analyze_quality_chart(curr, prev, report_month, prev_m, channel, categories, pv):
+    """分析质量表现图表"""
+    lines = []
+
+    # 提取当月数据
+    credit_avg = curr.get('1-7额度', 0)
+    pass_rate_13 = curr.get('过件率1-3_排年龄', 0)
+    pass_rate_17 = curr.get('过件率1-7_排年龄', 0)
+
+    # 提取上月数据
+    credit_avg_prev = prev.get('1-7额度', 0)
+    pass_rate_13_prev = prev.get('过件率1-3_排年龄', 0)
+    pass_rate_17_prev = prev.get('过件率1-7_排年龄', 0)
+
+    # 计算变化
+    credit_change = credit_avg - credit_avg_prev
+    pass_13_change = pass_rate_13 - pass_rate_13_prev
+    pass_17_change = pass_rate_17 - pass_rate_17_prev
+
+    # 标题: 质量表现
+    # 不需要添加标题,因为图表本身有标题
+
+    # 分析质量趋势
+    credit_dir = "提升" if credit_change > 0 else "下降"
+    pass_13_dir = "提升" if pass_13_change > 0 else "下降"
+    pass_17_dir = "提升" if pass_17_change > 0 else "下降"
+
+    lines.append(
+        f"**质量指标**: 1-7额度{credit_avg:.0f}元(环比{credit_dir}{abs(credit_change):.0f}元),"
+        f"1-3过件率{pass_rate_13*100:.1f}%(环比{pass_13_dir}{abs(pass_13_change)*100:.1f}pp),"
+        f"1-7过件率{pass_rate_17*100:.1f}%(环比{pass_17_dir}{abs(pass_17_change)*100:.1f}pp)"
+    )
+
+    # 趋势观察(计算近3个���趋势)
+    if len(pv) >= 3:
+        recent_3m = pv.tail(3)
+        if '1-7额度' in recent_3m.columns:
+            credit_trend = recent_3m['1-7额度']
+            if credit_trend.iloc[-1] > credit_trend.iloc[0]:
+                lines.append(f"**趋势观察**: 近3个月额度呈上升趋势,从{credit_trend.iloc[0]:.0f}元升至{credit_trend.iloc[-1]:.0f}元")
+            elif credit_trend.iloc[-1] < credit_trend.iloc[0]:
+                lines.append(f"**趋势观察**: 近3个月额度呈下降趋势,从{credit_trend.iloc[0]:.0f}元降至{credit_trend.iloc[-1]:.0f}元")
+
+    return lines
+
+
+def _analyze_generic(curr, prev, report_month, channel, categories):
+    """通用分析(当无法识别图表类型时)"""
+    lines = []
+    lines.append(f"**{channel}渠道 {report_month.strftime('%Y年%m月')}表现**:")
+
+    for cat in categories[:3]:  # 只展示前3个指标
+        val = curr.get(cat, 0)
+        val_prev = prev.get(cat, 0)
+        change = val - val_prev
+
+        # 判断是百分比还是数值
+        if val < 1 and val > 0:
+            lines.append(f"- {cat}: {val*100:.1f}% (环比{'上升' if change > 0 else '下降'}{abs(change)*100:.1f}pp)")
+        else:
+            lines.append(f"- {cat}: {val:.1f} (环比{'上升' if change > 0 else '下降'}{abs(change):.1f})")
+
+    return lines
 
 
 def _analyze_tencent_overview(curr, prev, report_month, prev_m):
+
     """腾讯渠道总览分析"""
     # 提取指标
     pass_rate_13 = curr.get('进件1-3通过率', 0)

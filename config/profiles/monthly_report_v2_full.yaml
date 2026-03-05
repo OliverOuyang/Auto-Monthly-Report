@@ -122,7 +122,7 @@ indicators:
       - 过件率1-7_排年龄
     show_total_line: false
     unit_divisor: 1.0
-    analysis_template: ""  # 不生成分析文字
+    analysis_template: channel_overview  # 使用智能分析
     data_source_type: derived
     is_right_chart: true  # 标记为右图
     merge_with_prev: true  # 合并到上一个slide
@@ -159,7 +159,7 @@ indicators:
       - 过件率1-7_排年龄
     show_total_line: false
     unit_divisor: 1.0
-    analysis_template: ""
+    analysis_template: channel_overview  # 使用智能分析
     data_source_type: derived
     is_right_chart: true
     merge_with_prev: true
@@ -196,7 +196,7 @@ indicators:
       - 过件率1-7_排年龄
     show_total_line: false
     unit_divisor: 1.0
-    analysis_template: ""
+    analysis_template: channel_overview  # 使用智能分析
     data_source_type: derived
     is_right_chart: true
     merge_with_prev: true
