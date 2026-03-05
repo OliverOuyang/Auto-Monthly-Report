@@ -310,8 +310,20 @@ def generate(pivot, meta: dict, styles: dict, lines: list[str],
 
     # ===== 生成 HTML =====
 
-    # 通用模板
-    if chart_type == 'stacked_bar_line':
+    # 通用模板映射（新chart type复用现有模板）
+    template_mapping = {
+        'stacked_bar_line': 'stacked_bar_line',
+        'dual_line': 'dual_line',
+        'bar_multi_line': 'bar_multi_line',
+        'single_line': 'dual_line',                  # 复用dual_line模板
+        'multi_line_grouped': 'dual_line',           # 复用dual_line模板
+        'dual_line_with_bar': 'bar_multi_line',      # 复用bar_multi_line模板
+        'stacked_column_chart': 'bar_multi_line',    # 复用bar_multi_line模板
+    }
+
+    template_type = template_mapping.get(chart_type, chart_type)
+
+    if template_type == 'stacked_bar_line':
         # 使用原有的 label formatter 逻辑
         ec_labels_json = json.dumps(option_data['ec_labels'], ensure_ascii=False)
         series_json = json.dumps(option_data['series'], ensure_ascii=False)
@@ -388,7 +400,7 @@ window.addEventListener('resize', function(){{ chart.resize(); }});
 </body>
 </html>"""
 
-    elif chart_type == 'dual_line':
+    elif template_type == 'dual_line':
         # 双线图
         series_json = json.dumps(option_data['series'], ensure_ascii=False)
         months_json = json.dumps(option_data['month_labels'])
@@ -441,7 +453,7 @@ window.addEventListener('resize', function(){{ chart.resize(); }});
 </body>
 </html>"""
 
-    elif chart_type == 'bar_multi_line':
+    elif template_type == 'bar_multi_line':
         # 柱状图 + 多折线（双Y轴）
         series_json = json.dumps(option_data['series'], ensure_ascii=False)
         months_json = json.dumps(option_data['month_labels'])
