@@ -8,6 +8,28 @@ from pathlib import Path
 
 from core import analyzer, chart_renderer, data_processor, excel_reader, html_generator, ppt_generator
 
+
+def _resolve_output_dirs(
+    excel_path_obj: Path,
+    workspace_path: Path | None,
+    output_path: str | None,
+) -> tuple[Path, Path, Path]:
+    if workspace_path:
+        root = workspace_path
+        return root / "html", root / "ppt", root / "charts"
+
+    if output_path:
+        out = Path(output_path)
+        if out.parent.name.lower() == "ppt":
+            root = out.parent.parent
+        else:
+            root = out.parent
+    else:
+        root = excel_path_obj.parent.parent / "export" / "latest"
+
+    return root / "html", root / "ppt", root / "charts"
+
+
 def _write_combined_html(html_paths: list[Path], out_file: Path) -> Path:
     out_file.parent.mkdir(parents=True, exist_ok=True)
     sections = []
@@ -85,13 +107,11 @@ def main(
 ) -> dict:
     excel_path_obj = Path(excel_path)
     workspace_path = Path(workspace) if workspace else None
-
-    if workspace_path:
-        export_html_dir = workspace_path / "HTML"
-        export_ppt_dir = workspace_path / "PPT"
-    else:
-        export_html_dir = excel_path_obj.parent.parent / "export" / "HTML"
-        export_ppt_dir = excel_path_obj.parent.parent / "export" / "PPT"
+    export_html_dir, export_ppt_dir, export_chart_dir = _resolve_output_dirs(
+        excel_path_obj=excel_path_obj,
+        workspace_path=workspace_path,
+        output_path=output_path,
+    )
 
     if profile_path:
         meta_list = excel_reader.read_meta_from_profile(profile_path)
@@ -136,7 +156,7 @@ def main(
                 pivot = data_processor.build_pivot(raw, meta)
 
         lines = analyzer.analyze(pivot, meta)
-        chart_path = chart_renderer.render(pivot, meta, styles, export_ppt_dir)
+        chart_path = chart_renderer.render(pivot, meta, styles, export_chart_dir)
         html_path = html_generator.generate(pivot, meta, styles, lines, export_html_dir)
 
         chart_paths.append(chart_path)
