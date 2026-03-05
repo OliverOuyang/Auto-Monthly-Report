@@ -402,7 +402,7 @@ indicators:
       - 千次可营销-授信率
     show_total_line: false
     unit_divisor: 1.0
-    analysis_template: generic_trend
+    analysis_template: jingzhun_conversion_summary
     data_source_type: derived
     use_llm_analysis: true
     is_left_chart: true

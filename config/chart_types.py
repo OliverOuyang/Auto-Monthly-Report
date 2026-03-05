@@ -29,7 +29,7 @@ def _fmt_pct(v: float, label: str) -> str:
 def _fmt_value(v: float, label: str) -> str:
     label_text = str(label)
     if 'CVR' in label_text:
-        return f'{v:.4f}'
+        return f'{v * 100:.4f}%'
     if abs(v) < 1:
         return _fmt_pct(v, label_text)
     return f'{v:.0f}'

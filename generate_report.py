@@ -8,6 +8,51 @@ from pathlib import Path
 
 from core import analyzer, chart_renderer, data_processor, excel_reader, html_generator, ppt_generator
 
+def _write_combined_html(html_paths: list[Path], out_file: Path) -> Path:
+    out_file.parent.mkdir(parents=True, exist_ok=True)
+    sections = []
+    toc = []
+    for idx, p in enumerate(html_paths, start=1):
+        rel = p.name
+        title = p.stem
+        anchor = f"p{idx}"
+        toc.append(f'<a href="#{anchor}">{idx:02d}. {title}</a>')
+        sections.append(
+            f"""
+<section id="{anchor}" class="page">
+  <h2>{idx:02d}. {title}</h2>
+  <iframe src="{rel}" loading="lazy"></iframe>
+</section>
+""".strip()
+        )
+
+    html = f"""<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>月报汇总浏览</title>
+  <style>
+    body {{ margin: 0; font-family: "Microsoft YaHei", "SimHei", sans-serif; background: #f5f6f8; }}
+    .toc {{
+      position: sticky; top: 0; z-index: 10; background: #fff; border-bottom: 1px solid #ddd;
+      display: flex; gap: 8px; overflow-x: auto; padding: 10px 12px;
+    }}
+    .toc a {{ color: #333; text-decoration: none; background: #f0f0f0; padding: 6px 10px; border-radius: 6px; white-space: nowrap; }}
+    .page {{ width: min(1600px, 96vw); margin: 14px auto; background: #fff; border: 1px solid #e3e3e3; border-radius: 8px; padding: 8px; }}
+    .page h2 {{ margin: 6px 8px 10px; font-size: 16px; color: #333; }}
+    iframe {{ width: 100%; height: 920px; border: none; background: #fff; }}
+  </style>
+</head>
+<body>
+  <nav class="toc">{''.join(toc)}</nav>
+  {''.join(sections)}
+</body>
+</html>
+"""
+    out_file.write_text(html, encoding="utf-8")
+    return out_file
+
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Generate monthly report HTML and PPT.")
@@ -68,7 +113,10 @@ def main(
     html_paths: list[Path] = []
     chart_paths: list[Path] = []
 
-    for meta in meta_list:
+    # 用于缓存左图信息,以便与右图合并
+    pending_left_chart = None
+
+    for i, meta in enumerate(meta_list):
         indicator_id = meta["indicator_id"]
         data_source_type = meta.get("data_source_type", "single")
 
@@ -90,10 +138,47 @@ def main(
         lines = analyzer.analyze(pivot, meta)
         chart_path = chart_renderer.render(pivot, meta, styles, export_ppt_dir)
         html_path = html_generator.generate(pivot, meta, styles, lines, export_html_dir)
-        ppt_generator.add_slide(prs, meta, styles, chart_path, lines)
 
         chart_paths.append(chart_path)
         html_paths.append(html_path)
+
+        # 检查是否需要合并到前一个slide
+        is_left_chart = meta.get('is_left_chart', False)
+        is_right_chart = meta.get('is_right_chart', False)
+        merge_with_prev = meta.get('merge_with_prev', False)
+
+        if is_left_chart:
+            # 这是左图,缓存起来等待右图
+            pending_left_chart = {
+                'meta': meta,
+                'chart_path': chart_path,
+                'lines': lines
+            }
+        elif is_right_chart and merge_with_prev and pending_left_chart:
+            # 这是右图,且需要合并,使用dual_chart_slide
+            ppt_generator.add_dual_chart_slide(
+                prs,
+                left_meta=pending_left_chart['meta'],
+                right_meta=meta,
+                styles=styles,
+                left_chart_path=pending_left_chart['chart_path'],
+                right_chart_path=chart_path,
+                lines=pending_left_chart['lines']  # 使用左图的分析文字
+            )
+            pending_left_chart = None  # 清空缓存
+        else:
+            # 普通单图slide
+            ppt_generator.add_slide(prs, meta, styles, chart_path, lines)
+            pending_left_chart = None  # 清空缓存（防止左图后没有右图的情况）
+
+    if pending_left_chart:
+        ppt_generator.add_slide(
+            prs,
+            pending_left_chart["meta"],
+            styles,
+            pending_left_chart["chart_path"],
+            pending_left_chart["lines"],
+        )
 
     if output_path:
         final_ppt = Path(output_path)
@@ -102,9 +187,11 @@ def main(
         final_ppt = export_ppt_dir / f"monthly_report_{report_month}.pptx"
 
     ppt_path = ppt_generator.save(prs, final_ppt)
+    combined_html_path = _write_combined_html(html_paths, export_html_dir / "月报汇总浏览.html")
     return {
         "ppt_path": Path(ppt_path),
         "html_paths": html_paths,
+        "combined_html_path": combined_html_path,
         "chart_paths": chart_paths,
         "indicator_count": len(meta_list),
         "workspace": workspace_path,
@@ -129,3 +216,4 @@ if __name__ == "__main__":
     print(f"PPT: {result['ppt_path']}")
     for html_path in result["html_paths"]:
         print(f"HTML: {html_path}")
+    print(f"HTML(all): {result['combined_html_path']}")

@@ -58,7 +58,10 @@ class JingzhunBuilderFallbackTests(unittest.TestCase):
             ["千次可营销-授信率", "千次可营销-首登率", "首登-授信率"],
             list(all_pivot.columns),
         )
-        self.assertEqual(["千次可营销-授信率"], list(overall.columns))
+        self.assertEqual(
+            ["千次可营销-授信率", "千次可营销-首登率", "首登-授信率"],
+            list(overall.columns),
+        )
         self.assertEqual(["千次可营销-首登率", "首登-授信率"], list(funnel.columns))
 
         jan = pd.Timestamp("2026-01-01")

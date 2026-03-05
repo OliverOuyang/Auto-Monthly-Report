@@ -97,22 +97,27 @@ def build_cps_all_channel_pivot(excel_path: str, meta: dict) -> pd.DataFrame:
     spend_monthly = df_spend_filtered.groupby('date_month')['业务口径花费'].sum()
 
     # ===== 2. 读取手动输入（促申完、RTA） =====
-    df_manual = pd.read_excel(excel_path, sheet_name='_manual_inputs')
-    manual_dict = df_manual.set_index('input_name').to_dict('index')
+    try:
+        df_manual = pd.read_excel(excel_path, sheet_name='_manual_inputs')
+        manual_dict = df_manual.set_index('input_name').to_dict('index')
 
-    # 提取月份列（排除 input_name 和可能的总计列）
-    month_cols = [col for col in df_manual.columns if col not in ['input_name', '总计', 'Unnamed: 0']
-                  and isinstance(col, str) and '-' in col]
+        # 提取月份列（排除 input_name 和可能的总计列）
+        month_cols = [col for col in df_manual.columns if col not in ['input_name', '总计', 'Unnamed: 0']
+                      and isinstance(col, str) and '-' in col]
 
-    cushenwan_series = pd.Series({
-        pd.Timestamp(col + '-01'): manual_dict['促申完花费'][col]
-        for col in month_cols if col in manual_dict.get('促申完花费', {})
-    })
+        cushenwan_series = pd.Series({
+            pd.Timestamp(col + '-01'): manual_dict['促申完花费'][col]
+            for col in month_cols if col in manual_dict.get('促申完花费', {})
+        })
 
-    rta_series = pd.Series({
-        pd.Timestamp(col + '-01'): manual_dict['RTA花费'][col]
-        for col in month_cols if col in manual_dict.get('RTA花费', {})
-    })
+        rta_series = pd.Series({
+            pd.Timestamp(col + '-01'): manual_dict['RTA花费'][col]
+            for col in month_cols if col in manual_dict.get('RTA花费', {})
+        })
+    except ValueError:
+        # 新输入文件可能不带 _manual_inputs，按 0 处理，确保全量报告可继续生成。
+        cushenwan_series = pd.Series(dtype=float)
+        rta_series = pd.Series(dtype=float)
 
     # ===== 3. 计算总花费 =====
     total_spend = spend_monthly + cushenwan_series.reindex(spend_monthly.index, fill_value=0) + \
@@ -719,8 +724,8 @@ def build_jingzhun_conversion_pivot(excel_path: str, meta: dict) -> pd.DataFrame
 
 
 def build_jingzhun_conversion_overall_pivot(excel_path: str, meta: dict) -> pd.DataFrame:
-    full_pivot = build_jingzhun_conversion_pivot(excel_path, meta)
-    return full_pivot[['千次可营销-授信率']]
+    # 为左图输出完整口径，便于分析模板拿到分环节指标补充结论文本。
+    return build_jingzhun_conversion_pivot(excel_path, meta)
 
 
 def build_jingzhun_conversion_funnel_pivot(excel_path: str, meta: dict) -> pd.DataFrame:
