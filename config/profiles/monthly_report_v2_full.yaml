@@ -97,7 +97,7 @@ indicators:
     slide_order: 11
     chart_type: dual_line_with_bar
     chart_title: 花费及成本
-    slide_title: 腾讯总览：质量成本达成良好;稳定质量,探索成本继续压降的可能性
+    slide_title: 腾讯总览：质量成本达成良好;稳定质量,持续提升用户质量
     raw_sheet: 4_转化
     channel_filter: 腾讯
     categories:
@@ -113,7 +113,7 @@ indicators:
     slide_order: 11
     chart_type: bar_multi_line
     chart_title: 质量表现
-    slide_title: ""  # 使用相同slide,不重复标题
+    slide_title: "腾讯总览：质量成本达成良好;稳定质量,持续提升用户质量"  # 与cost图使用相同标题
     raw_sheet: 4_转化
     channel_filter: 腾讯
     categories:
@@ -150,7 +150,7 @@ indicators:
     slide_order: 15
     chart_type: bar_multi_line
     chart_title: 抖音质量表现
-    slide_title: ""
+    slide_title: "抖音总览：规模不足、指标波动较大;短期适当放开排除、提出价方式提升规模"  # 与cost图使用相同标题
     raw_sheet: 4_转化
     channel_filter: 抖音
     categories:
@@ -171,7 +171,7 @@ indicators:
     slide_order: 19
     chart_type: dual_line_with_bar
     chart_title: 精准核心指标
-    slide_title: 精准总览：质量提升显著风险表现有待观测,成本仍需压降
+    slide_title: 精准总览：质量提升显著,持续优化用户质量结构
     raw_sheet: 4_转化
     channel_filter: 精准营销
     categories:
@@ -187,7 +187,7 @@ indicators:
     slide_order: 19
     chart_type: bar_multi_line
     chart_title: 精准质量表现
-    slide_title: ""
+    slide_title: "精准总览：质量提升显著,持续优化用户质量结构"  # 与cost图使用相同标题
     raw_sheet: 4_转化
     channel_filter: 精准营销
     categories:
@@ -208,58 +208,86 @@ indicators:
     slide_order: 12
     chart_type: dual_line_with_bar
     chart_title: 腾讯-请求及参竞
-    slide_title: 腾讯渠道详细分析：请求数与参竞数
+    slide_title: 腾讯转化—请求及参竞
     raw_sheet: 5_腾讯
     categories:
-      - 请求数
-      - 参竞数
+      - 日请求量
       - 参竞率
     show_total_line: false
     unit_divisor: 1.0
-    analysis_template: tencent_request
+    analysis_template: generic_trend
     data_source_type: derived
-    use_llm_analysis: true
-    # 策略调整节点标注 (需要在图表渲染时处理)
+    # 策略调整节点标注
     strategy_annotations:
-      - date: 2025-11-15
-        label: 策略调整A
+      - date: 2026-01-09
+        label: RTAV9排除增加10%
 
-  - indicator_id: tencent_win_rate
+  # P13需要左右两图:整体竞得率(左) + 分组竞得率(右)
+  - indicator_id: tencent_win_rate_overall
     slide_order: 13
-    chart_type: multi_line_grouped
-    chart_title: 腾讯-竞得率
-    slide_title: 腾讯渠道详细分析：竞得率(整体 & 分组)
+    chart_type: single_line
+    chart_title: 腾讯竞得率
+    slide_title: 腾讯转化—竞得率
     raw_sheet: 5_腾讯
-    group_by: v7prea
     categories:
       - 整体竞得率
+    show_total_line: false
+    unit_divisor: 1.0
+    analysis_template: generic_trend
+    data_source_type: derived
+    is_left_chart: true
+
+  - indicator_id: tencent_win_rate_grouped
+    slide_order: 13
+    chart_type: multi_line_grouped
+    chart_title: 腾讯竞得率byV7preA
+    slide_title: ""
+    raw_sheet: 5_腾讯
+    categories:
       - 1Q竞得率
       - 2Q竞得率
       - 3Q竞得率
-      - 其他竞得率
+      - UNK竞得率
     show_total_line: false
     unit_divisor: 1.0
-    analysis_template: tencent_win_rate
+    analysis_template: generic_trend
     data_source_type: derived
-    use_llm_analysis: true
+    is_right_chart: true
+    merge_with_prev: true
+    strategy_annotations:
+      - date: 2026-01-09
+        label: RTAV9出价优化
 
-  - indicator_id: tencent_conversion
+  # P14需要左右两图:曝光-授信率(左) + CTR/CVR(右)
+  - indicator_id: tencent_conversion_overall
     slide_order: 14
-    chart_type: dual_line_with_bar
-    chart_title: 腾讯-曝光至授信
-    slide_title: 腾讯渠道详细分析：曝光至授信转化
+    chart_type: single_line
+    chart_title: 曝光-授信率x1000
+    slide_title: 腾讯转化—曝光至授信
     raw_sheet: 5_腾讯
     categories:
-      - 曝光数
-      - 点击数
-      - 授信数
+      - 曝光-授信
+    show_total_line: false
+    unit_divisor: 1.0
+    analysis_template: generic_trend
+    data_source_type: derived
+    is_left_chart: true
+
+  - indicator_id: tencent_conversion_funnel
+    slide_order: 14
+    chart_type: dual_line
+    chart_title: 分环节转化
+    slide_title: ""
+    raw_sheet: 5_腾讯
+    categories:
       - CTR
       - CVR
     show_total_line: false
     unit_divisor: 1.0
-    analysis_template: tencent_conversion
+    analysis_template: generic_trend
     data_source_type: derived
-    use_llm_analysis: true
+    is_right_chart: true
+    merge_with_prev: true
 
   # ============================================================================
   # P16-18: 抖音渠道详细分析
@@ -268,54 +296,82 @@ indicators:
     slide_order: 16
     chart_type: dual_line_with_bar
     chart_title: 抖音-请求及参竞
-    slide_title: 抖音渠道详细分析：请求数与竞得数
+    slide_title: 抖音转化—请求及参竞
     raw_sheet: 6_抖音
     categories:
-      - 请求数
-      - 竞得数
-      - 竞得率
+      - 日请求量
+      - 参竞率
     show_total_line: false
     unit_divisor: 1.0
-    analysis_template: douyin_request
+    analysis_template: generic_trend
     data_source_type: derived
-    use_llm_analysis: true
+    strategy_annotations:
+      - date: 2025-12-15
+        label: 1125 RTAV8迭代 多排除7%交易
 
-  - indicator_id: douyin_win_rate
+  # P17需要左右两图:竞得率整体(左) + 分组byV8preA(右)
+  - indicator_id: douyin_win_rate_overall
     slide_order: 17
-    chart_type: multi_line_grouped
-    chart_title: 抖音-竞得率
-    slide_title: 抖音渠道详细分析：竞得率(整体 & 分组)
+    chart_type: single_line
+    chart_title: 抖音竞得率
+    slide_title: 抖音转化—竞得率
     raw_sheet: 6_抖音
-    group_by: v8prea
     categories:
       - 整体竞得率
-      - UNK竞得率
-      - 1Q竞得率
-      - 2Q竞得率
-      - 其他竞得率
     show_total_line: false
     unit_divisor: 1.0
-    analysis_template: douyin_win_rate
+    analysis_template: generic_trend
     data_source_type: derived
-    use_llm_analysis: true
+    is_left_chart: true
 
-  - indicator_id: douyin_conversion
-    slide_order: 18
-    chart_type: dual_line_with_bar
-    chart_title: 抖音-曝光至登录
-    slide_title: 抖音渠道详细分析：曝光至登录转化
+  - indicator_id: douyin_win_rate_grouped
+    slide_order: 17
+    chart_type: multi_line_grouped
+    chart_title: 抖音竞得率byV8preA
+    slide_title: ""
     raw_sheet: 6_抖音
     categories:
-      - 曝光数
-      - 点击数
-      - 登录数
+      - 1Q竞得率
+      - 2Q竞得率
+      - 3Q竞得率
+      - UNK竞得率
+    show_total_line: false
+    unit_divisor: 1.0
+    analysis_template: generic_trend
+    data_source_type: derived
+    is_right_chart: true
+    merge_with_prev: true
+
+  # P18需要左右两图:曝光-授信率*1000(左) + CTR/CVR(右)
+  - indicator_id: douyin_conversion_overall
+    slide_order: 18
+    chart_type: single_line
+    chart_title: 曝光授信率*1000
+    slide_title: 抖音转化—曝光至授信
+    raw_sheet: 6_抖音
+    categories:
+      - 曝光-授信
+    show_total_line: false
+    unit_divisor: 1.0
+    analysis_template: generic_trend
+    data_source_type: derived
+    is_left_chart: true
+
+  - indicator_id: douyin_conversion_funnel
+    slide_order: 18
+    chart_type: dual_line
+    chart_title: 分环节转化
+    slide_title: ""
+    raw_sheet: 6_抖音
+    categories:
       - CTR
       - CVR
     show_total_line: false
     unit_divisor: 1.0
-    analysis_template: douyin_conversion
+    analysis_template: generic_trend
     data_source_type: derived
-    use_llm_analysis: true
+    is_right_chart: true
+    merge_with_prev: true
 
   # ============================================================================
   # P20-21: 精准渠道详细分析
@@ -415,4 +471,4 @@ styles:
     title_color: '#8B4513'
     total_line_color: '#FF0000'
     label_color: '#5A5A5A'
-    font_family: Microsoft YaHei
+    font_family: STKaiti

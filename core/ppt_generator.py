@@ -19,11 +19,11 @@ def create_presentation() -> Presentation:
 def add_slide(prs: Presentation, meta: dict, styles: dict,
               chart_path: str | Path, lines: list[str]) -> None:
     """
-    添加一页幻灯片。
+    添加一页幻灯片（单图）。
     """
     global_styles = styles.get('global', {})
     title_color_hex = global_styles.get('title_color', '#8B4513')
-    font_family = global_styles.get('font_family', 'Microsoft YaHei')
+    font_family = global_styles.get('font_family', 'STKaiti')
 
     # 解析 hex color
     tc = _hex_to_rgb(title_color_hex)
@@ -66,8 +66,91 @@ def add_slide(prs: Presentation, meta: dict, styles: dict,
         p2.space_after = Pt(4)
         p2.line_spacing = Pt(24)
 
-    # ── Chart image ──
-    slide.shapes.add_picture(str(chart_path), Cm(0.8), Cm(5.8), Cm(32), Cm(12.5))
+    # ── Chart image (等比例缩放，只指定宽度) ──
+    slide.shapes.add_picture(str(chart_path), Cm(0.8), Cm(5.8), width=Cm(32))
+
+    # ── Red square decoration (top right) ──
+    sq = slide.shapes.add_shape(MSO_SHAPE.RECTANGLE, Cm(31.5), Cm(1.0), Cm(1.2), Cm(1.2))
+    sq.fill.solid()
+    sq.fill.fore_color.rgb = RGBColor(0xE8, 0x4C, 0x3D)
+    sq.line.fill.background()
+
+    # ── Bottom gradient bar ──
+    bar = slide.shapes.add_shape(MSO_SHAPE.RECTANGLE, Cm(0), Cm(18.2), Cm(33.86), Cm(0.8))
+    bf = bar.fill
+    bf.gradient()
+    bf.gradient_stops[0].color.rgb = RGBColor(0xC0, 0x39, 0x2B)
+    bf.gradient_stops[0].position = 0.0
+    bf.gradient_stops[1].color.rgb = RGBColor(0xFA, 0xDB, 0xD8)
+    bf.gradient_stops[1].position = 1.0
+    bar.line.fill.background()
+
+
+def add_dual_chart_slide(prs: Presentation, left_meta: dict, right_meta: dict,
+                         styles: dict, left_chart_path: str | Path,
+                         right_chart_path: str | Path, lines: list[str]) -> None:
+    """
+    添加一页包含左右两个图表的幻灯片。
+
+    Args:
+        prs: Presentation对象
+        left_meta: 左图元数据
+        right_meta: 右图元数据
+        styles: 样式配置
+        left_chart_path: 左图路径
+        right_chart_path: 右图路径
+        lines: 分析文字列表（使用左图的分析）
+    """
+    global_styles = styles.get('global', {})
+    title_color_hex = global_styles.get('title_color', '#8B4513')
+    font_family = global_styles.get('font_family', 'STKaiti')
+
+    # 解析 hex color
+    tc = _hex_to_rgb(title_color_hex)
+
+    slide = prs.slides.add_slide(prs.slide_layouts[6])  # Blank
+
+    # Background
+    slide.background.fill.solid()
+    slide.background.fill.fore_color.rgb = RGBColor(0xFF, 0xFF, 0xFF)
+
+    # ── Title (使用左图的标题) ──
+    slide_title = left_meta.get('slide_title', '')
+    tb = slide.shapes.add_textbox(Cm(2), Cm(0.8), Cm(28), Cm(1.4))
+    p = tb.text_frame.paragraphs[0]
+    p.text = slide_title
+    p.font.size = Pt(24)
+    p.font.bold = True
+    p.font.color.rgb = tc
+    p.font.name = font_family
+
+    # ── Golden underline ──
+    ul = slide.shapes.add_shape(MSO_SHAPE.RECTANGLE, Cm(2), Cm(2.45), Cm(30), Cm(0.12))
+    ul.fill.solid()
+    ul.fill.fore_color.rgb = RGBColor(0xDA, 0xA5, 0x20)
+    ul.line.fill.background()
+
+    # ── Summary text ──
+    tb2 = slide.shapes.add_textbox(Cm(2), Cm(3.0), Cm(29), Cm(2.0))
+    tf2 = tb2.text_frame
+    tf2.word_wrap = True
+    for i, line in enumerate(lines):
+        if i == 0:
+            p2 = tf2.paragraphs[0]
+        else:
+            p2 = tf2.add_paragraph()
+        p2.text = line
+        p2.font.size = Pt(12)  # 稍小一点
+        p2.font.color.rgb = RGBColor(0x33, 0x33, 0x33)
+        p2.font.name = font_family
+        p2.space_after = Pt(3)
+        p2.line_spacing = Pt(20)
+
+    # ── Left chart image (等比例缩放，只指定宽度) ──
+    slide.shapes.add_picture(str(left_chart_path), Cm(0.8), Cm(5.9), width=Cm(15.6), height=Cm(11.7))
+
+    # ── Right chart image (等比例缩放，只指定宽度) ──
+    slide.shapes.add_picture(str(right_chart_path), Cm(16.7), Cm(5.9), width=Cm(15.6), height=Cm(11.7))
 
     # ── Red square decoration (top right) ──
     sq = slide.shapes.add_shape(MSO_SHAPE.RECTANGLE, Cm(31.5), Cm(1.0), Cm(1.2), Cm(1.2))
