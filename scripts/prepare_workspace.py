@@ -7,6 +7,7 @@ import argparse
 import shutil
 from datetime import datetime
 from pathlib import Path
+import json
 
 import openpyxl
 import pandas as pd
@@ -88,6 +89,8 @@ def prepare_workspace(
     ws_meta = wb.create_sheet("_meta", 0)
     for r_idx, row in enumerate([meta_df.columns.tolist()] + meta_df.values.tolist(), 1):
         for c_idx, value in enumerate(row, 1):
+            if isinstance(value, (list, dict)):
+                value = json.dumps(value, ensure_ascii=False, default=str)
             ws_meta.cell(row=r_idx, column=c_idx, value=value)
 
     ws_styles = wb.create_sheet("_styles", 1)

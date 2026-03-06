@@ -1,6 +1,8 @@
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
+import pandas as pd
 from core import excel_reader
 
 
@@ -45,6 +47,60 @@ styles:
         self.assertEqual("config/manual_inputs.csv", meta[0]["manual_inputs_csv"])
         self.assertEqual("#4472C4", styles["colors"]["当月首登M0"])
         self.assertEqual("#8B4513", styles["global"]["title_color"])
+
+    def test_read_meta_parses_strategy_annotations_json_from_excel(self):
+        df = pd.DataFrame(
+            [
+                {
+                    "indicator_id": "x",
+                    "slide_order": 1,
+                    "categories": "A,B",
+                    "strategy_annotations": '[{"date":"2026-01-09","label":"test"}]',
+                }
+            ]
+        )
+        with patch("core.excel_reader.pd.read_excel", return_value=df):
+            meta = excel_reader.read_meta("fake.xlsx")
+
+        self.assertEqual(["A", "B"], meta[0]["categories"])
+        self.assertIsInstance(meta[0]["strategy_annotations"], list)
+        self.assertEqual("2026-01-09", meta[0]["strategy_annotations"][0]["date"])
+
+    def test_read_meta_normalizes_empty_strategy_annotations(self):
+        df = pd.DataFrame(
+            [
+                {
+                    "indicator_id": "x",
+                    "slide_order": 1,
+                    "categories": "A,B",
+                    "strategy_annotations": float("nan"),
+                }
+            ]
+        )
+        with patch("core.excel_reader.pd.read_excel", return_value=df):
+            meta = excel_reader.read_meta("fake.xlsx")
+
+        self.assertEqual([], meta[0]["strategy_annotations"])
+
+    def test_read_meta_normalizes_chart_merge_flags_from_nan(self):
+        df = pd.DataFrame(
+            [
+                {
+                    "indicator_id": "x",
+                    "slide_order": 1,
+                    "categories": "A,B",
+                    "is_left_chart": float("nan"),
+                    "is_right_chart": float("nan"),
+                    "merge_with_prev": float("nan"),
+                }
+            ]
+        )
+        with patch("core.excel_reader.pd.read_excel", return_value=df):
+            meta = excel_reader.read_meta("fake.xlsx")
+
+        self.assertFalse(meta[0]["is_left_chart"])
+        self.assertFalse(meta[0]["is_right_chart"])
+        self.assertFalse(meta[0]["merge_with_prev"])
 
 
 if __name__ == "__main__":

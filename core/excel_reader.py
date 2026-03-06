@@ -4,9 +4,24 @@
 from __future__ import annotations
 
 from pathlib import Path
+import json
 
 import pandas as pd
 import yaml
+
+
+def _as_bool(v, default: bool = False) -> bool:
+    if v is None:
+        return default
+    if isinstance(v, float) and pd.isna(v):
+        return default
+    if isinstance(v, str):
+        s = v.strip().lower()
+        if s in {"true", "1", "yes", "y"}:
+            return True
+        if s in {"false", "0", "no", "n", ""}:
+            return False
+    return bool(v)
 
 
 def _normalize_meta_record(record: dict) -> dict:
@@ -32,7 +47,27 @@ def _normalize_meta_record(record: dict) -> dict:
     elif filter_exclude is None:
         m["filter_exclude"] = []
 
-    m["show_total_line"] = bool(m.get("show_total_line", True))
+    # Optional advanced config fields can be serialized as JSON strings in Excel _meta.
+    strategy_annotations = m.get("strategy_annotations")
+    if strategy_annotations is None or (
+        isinstance(strategy_annotations, float) and pd.isna(strategy_annotations)
+    ):
+        m["strategy_annotations"] = []
+        strategy_annotations = m["strategy_annotations"]
+    if isinstance(strategy_annotations, str) and strategy_annotations.strip():
+        txt = strategy_annotations.strip()
+        if txt.startswith("[") or txt.startswith("{"):
+            try:
+                m["strategy_annotations"] = json.loads(txt)
+            except json.JSONDecodeError:
+                # Keep original string if not valid JSON.
+                pass
+
+    m["show_total_line"] = _as_bool(m.get("show_total_line", True), default=True)
+    m["is_left_chart"] = _as_bool(m.get("is_left_chart", False), default=False)
+    m["is_right_chart"] = _as_bool(m.get("is_right_chart", False), default=False)
+    m["merge_with_prev"] = _as_bool(m.get("merge_with_prev", False), default=False)
+    m["use_llm_analysis"] = _as_bool(m.get("use_llm_analysis", False), default=False)
     m["unit_divisor"] = float(m.get("unit_divisor", 1))
     m["slide_order"] = int(m.get("slide_order", 999))
     return m
