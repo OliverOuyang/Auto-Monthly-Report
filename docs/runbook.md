@@ -19,6 +19,14 @@ python generate_report.py run \
   --emit-manifest
 ```
 
+## 3.1 一键脚本入口
+```bash
+python scripts/run_report.py \
+  --excel <excel_path> \
+  --profile <profile_path> \
+  --run-id <optional>
+```
+
 ## 4. 仅生成部分指标
 ```bash
 python generate_report.py run \
