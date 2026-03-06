@@ -36,3 +36,4 @@ scripts/archive/**
 temp_*.csv
 task_panel.out.log
 task_panel.err.log
+pytest-cache-files-*/
