@@ -22,7 +22,13 @@ def _pct_decimals(label: str) -> int:
     label_text = str(label)
     if '竞得率' in label_text:
         return 2
-    if '首登-授信率' in label_text or '转化率' in label_text:
+    if (
+        '首登-授信率' in label_text
+        or '转化率' in label_text
+        or '可营销-授信率' in label_text
+        or '可营销-首登率' in label_text
+        or '千次可营销' in label_text
+    ):
         return 2
     return 1
 

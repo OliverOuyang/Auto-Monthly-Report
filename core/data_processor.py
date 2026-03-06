@@ -104,28 +104,69 @@ def build_cps_all_channel_pivot(excel_path: str, meta: dict) -> pd.DataFrame:
     # 按月聚合
     spend_monthly = df_spend_filtered.groupby('date_month')['业务口径花费'].sum()
 
+    def _normalize_name(v) -> str:
+        return str(v).replace('\u3000', ' ').strip().replace(' ', '').lower()
+
+    def _extract_month_cols(df_manual: pd.DataFrame) -> list[str]:
+        cols: list[str] = []
+        for col in df_manual.columns:
+            if col in ['input_name', '总计', 'Unnamed: 0']:
+                continue
+            if isinstance(col, (pd.Timestamp, np.datetime64)):
+                cols.append(str(pd.Timestamp(col).strftime('%Y-%m')))
+                continue
+            col_text = str(col).strip()
+            if '-' in col_text:
+                cols.append(col_text[:7])
+        # 去重保序
+        seen = set()
+        out = []
+        for c in cols:
+            if c not in seen:
+                seen.add(c)
+                out.append(c)
+        return out
+
+    def _extract_manual_series(df_manual: pd.DataFrame, target_tokens: list[str]) -> pd.Series:
+        if df_manual is None or df_manual.empty or 'input_name' not in df_manual.columns:
+            return pd.Series(dtype=float)
+
+        tmp = df_manual.copy()
+        tmp['__name_norm__'] = tmp['input_name'].map(_normalize_name)
+
+        def _match_target(name_norm: str) -> bool:
+            return all(tok in name_norm for tok in target_tokens)
+
+        matched = tmp[tmp['__name_norm__'].map(_match_target)]
+        if matched.empty:
+            return pd.Series(dtype=float)
+
+        row = matched.iloc[0]
+        month_cols = _extract_month_cols(tmp)
+        values = {}
+        for month_col in month_cols:
+            if month_col not in row.index:
+                continue
+            values[pd.Timestamp(month_col + '-01')] = pd.to_numeric(row[month_col], errors='coerce')
+        s = pd.Series(values, dtype=float).fillna(0.0)
+        return s
+
+    def _load_manual_inputs_df() -> pd.DataFrame:
+        try:
+            return pd.read_excel(excel_path, sheet_name='_manual_inputs')
+        except ValueError:
+            csv_path = meta.get('manual_inputs_csv')
+            if csv_path:
+                try:
+                    return pd.read_csv(csv_path, encoding='utf-8-sig')
+                except FileNotFoundError:
+                    return pd.DataFrame()
+            return pd.DataFrame()
+
     # ===== 2. 读取手动输入（促申完、RTA） =====
-    try:
-        df_manual = pd.read_excel(excel_path, sheet_name='_manual_inputs')
-        manual_dict = df_manual.set_index('input_name').to_dict('index')
-
-        # 提取月份列（排除 input_name 和可能的总计列）
-        month_cols = [col for col in df_manual.columns if col not in ['input_name', '总计', 'Unnamed: 0']
-                      and isinstance(col, str) and '-' in col]
-
-        cushenwan_series = pd.Series({
-            pd.Timestamp(col + '-01'): manual_dict['促申完花费'][col]
-            for col in month_cols if col in manual_dict.get('促申完花费', {})
-        })
-
-        rta_series = pd.Series({
-            pd.Timestamp(col + '-01'): manual_dict['RTA花费'][col]
-            for col in month_cols if col in manual_dict.get('RTA花费', {})
-        })
-    except ValueError:
-        # 新输入文件可能不带 _manual_inputs，按 0 处理，确保全量报告可继续生成。
-        cushenwan_series = pd.Series(dtype=float)
-        rta_series = pd.Series(dtype=float)
+    df_manual = _load_manual_inputs_df()
+    cushenwan_series = _extract_manual_series(df_manual, ['促申完', '花费'])
+    rta_series = _extract_manual_series(df_manual, ['rta', '花费'])
 
     # ===== 3. 计算总花费 =====
     total_spend = spend_monthly + cushenwan_series.reindex(spend_monthly.index, fill_value=0) + \
