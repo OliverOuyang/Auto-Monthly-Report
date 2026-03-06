@@ -4,7 +4,11 @@
 from __future__ import annotations
 
 import argparse
+import json
+from datetime import datetime, timezone
+import importlib.util
 from pathlib import Path
+import sys
 
 from core import analyzer, chart_renderer, data_processor, excel_reader, html_generator, ppt_generator
 
@@ -76,26 +80,134 @@ def _write_combined_html(html_paths: list[Path], out_file: Path) -> Path:
     return out_file
 
 
+def _parse_indicator_ids(indicators: str | None) -> list[str] | None:
+    if not indicators:
+        return None
+    out = [x.strip() for x in indicators.split(",") if x.strip()]
+    return out or None
+
+
+def _write_run_manifest(
+    root_dir: Path,
+    *,
+    excel_path: str,
+    profile_path: str | None,
+    indicator_ids: list[str] | None,
+    result: dict,
+) -> Path:
+    root_dir.mkdir(parents=True, exist_ok=True)
+    manifest = {
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "excel_path": excel_path,
+        "profile_path": profile_path,
+        "indicator_ids": indicator_ids or [],
+        "indicator_count": int(result["indicator_count"]),
+        "ppt_path": str(result["ppt_path"]),
+        "combined_html_path": str(result["combined_html_path"]),
+        "chart_paths": [str(p) for p in result["chart_paths"]],
+        "html_paths": [str(p) for p in result["html_paths"]],
+        "workspace": str(result["workspace"]) if result.get("workspace") else None,
+    }
+    path = root_dir / "manifest.json"
+    path.write_text(json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8")
+    return path
+
+
+def validate_config(excel_path: str, profile_path: str | None = None) -> dict:
+    errors: list[str] = []
+    warnings: list[str] = []
+
+    if profile_path:
+        meta_list = excel_reader.read_meta_from_profile(profile_path)
+        _ = excel_reader.read_styles_from_profile(profile_path)
+    else:
+        meta_list = excel_reader.read_meta(excel_path)
+        _ = excel_reader.read_styles(excel_path)
+
+    if not meta_list:
+        errors.append("No indicators found in config.")
+        return {"ok": False, "errors": errors, "warnings": warnings, "indicator_count": 0}
+
+    required_fields = ["indicator_id", "chart_type"]
+    for idx, meta in enumerate(meta_list, start=1):
+        missing = [f for f in required_fields if not meta.get(f)]
+        if missing:
+            errors.append(f"Row {idx}: missing required fields: {', '.join(missing)}")
+            continue
+
+        indicator_id = str(meta["indicator_id"])
+        if meta.get("data_source_type", "single") == "derived":
+            builder_name = f"build_{indicator_id}_pivot"
+            if getattr(data_processor, builder_name, None) is None:
+                errors.append(f"Derived builder not found: {builder_name}")
+
+    if profile_path:
+        cfg = {}
+        try:
+            import yaml
+
+            cfg = yaml.safe_load(Path(profile_path).read_text(encoding="utf-8")) or {}
+        except Exception as exc:  # pragma: no cover
+            warnings.append(f"Could not parse profile for extra checks: {exc}")
+
+        manual_csv = cfg.get("manual_inputs_csv")
+        if manual_csv and not Path(manual_csv).exists():
+            warnings.append(f"manual_inputs_csv not found: {manual_csv}")
+
+    return {
+        "ok": not errors,
+        "errors": errors,
+        "warnings": warnings,
+        "indicator_count": len(meta_list),
+    }
+
+
+def doctor() -> dict:
+    checks = {}
+    for module in ["pandas", "openpyxl", "matplotlib", "pptx", "yaml"]:
+        checks[module] = bool(importlib.util.find_spec(module))
+    return {"ok": all(checks.values()), "checks": checks}
+
+
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
+    args_in = list(sys.argv[1:] if argv is None else argv)
+    known = {"run", "validate", "doctor"}
+    if not args_in or args_in[0] not in known:
+        args_in = ["run", *args_in]
+
     parser = argparse.ArgumentParser(description="Generate monthly report HTML and PPT.")
-    parser.add_argument("--excel", required=True, help="Path to the source Excel file.")
-    parser.add_argument(
+    sub = parser.add_subparsers(dest="command", required=True)
+
+    run = sub.add_parser("run", help="Generate report artifacts.")
+    run.add_argument("--excel", required=True, help="Path to the source Excel file.")
+    run.add_argument(
         "--profile",
         default=None,
         help="External YAML profile path. If omitted, read _meta/_styles from Excel.",
     )
-    parser.add_argument(
+    run.add_argument(
         "--workspace",
         default=None,
         help="Intermediate workspace dir for run artifacts/logs (optional).",
     )
-    parser.add_argument(
+    run.add_argument(
         "--indicators",
         default=None,
         help="Comma-separated indicator IDs to generate. If omitted, generate all.",
     )
-    parser.add_argument("--output", default=None, help="Output PPT path. Optional.")
-    return parser.parse_args(argv)
+    run.add_argument("--output", default=None, help="Output PPT path. Optional.")
+    run.add_argument(
+        "--emit-manifest",
+        action="store_true",
+        help="Write run manifest.json to output root.",
+    )
+
+    validate = sub.add_parser("validate", help="Validate profile/meta and builder wiring.")
+    validate.add_argument("--excel", required=True, help="Path to the source Excel file.")
+    validate.add_argument("--profile", default=None, help="Profile YAML path.")
+
+    sub.add_parser("doctor", help="Check runtime dependencies.")
+    return parser.parse_args(args_in)
 
 
 def main(
@@ -104,6 +216,7 @@ def main(
     output_path: str | None = None,
     profile_path: str | None = None,
     workspace: str | None = None,
+    emit_manifest: bool = False,
 ) -> dict:
     excel_path_obj = Path(excel_path)
     workspace_path = Path(workspace) if workspace else None
@@ -208,7 +321,7 @@ def main(
 
     ppt_path = ppt_generator.save(prs, final_ppt)
     combined_html_path = _write_combined_html(html_paths, export_html_dir / "月报汇总浏览.html")
-    return {
+    result = {
         "ppt_path": Path(ppt_path),
         "html_paths": html_paths,
         "combined_html_path": combined_html_path,
@@ -216,24 +329,46 @@ def main(
         "indicator_count": len(meta_list),
         "workspace": workspace_path,
     }
+    if emit_manifest:
+        root_dir = Path(ppt_path).parent.parent if Path(ppt_path).parent.name.lower() == "ppt" else Path(ppt_path).parent
+        result["manifest_path"] = _write_run_manifest(
+            root_dir,
+            excel_path=excel_path,
+            profile_path=profile_path,
+            indicator_ids=indicator_ids,
+            result=result,
+        )
+    return result
 
 
 if __name__ == "__main__":
     args = parse_args()
-    indicators = None
-    if args.indicators:
-        indicators = [x.strip() for x in args.indicators.split(",") if x.strip()]
-
-    result = main(
-        excel_path=args.excel,
-        indicator_ids=indicators,
-        output_path=args.output,
-        profile_path=args.profile,
-        workspace=args.workspace,
-    )
-
-    print(f"Generated {result['indicator_count']} indicators.")
-    print(f"PPT: {result['ppt_path']}")
-    for html_path in result["html_paths"]:
-        print(f"HTML: {html_path}")
-    print(f"HTML(all): {result['combined_html_path']}")
+    if args.command == "run":
+        result = main(
+            excel_path=args.excel,
+            indicator_ids=_parse_indicator_ids(args.indicators),
+            output_path=args.output,
+            profile_path=args.profile,
+            workspace=args.workspace,
+            emit_manifest=args.emit_manifest,
+        )
+        print(f"Generated {result['indicator_count']} indicators.")
+        print(f"PPT: {result['ppt_path']}")
+        for html_path in result["html_paths"]:
+            print(f"HTML: {html_path}")
+        print(f"HTML(all): {result['combined_html_path']}")
+        if result.get("manifest_path"):
+            print(f"Manifest: {result['manifest_path']}")
+    elif args.command == "validate":
+        report = validate_config(excel_path=args.excel, profile_path=args.profile)
+        print(f"OK: {report['ok']}")
+        print(f"Indicators: {report['indicator_count']}")
+        for w in report["warnings"]:
+            print(f"WARN: {w}")
+        for e in report["errors"]:
+            print(f"ERROR: {e}")
+    elif args.command == "doctor":
+        report = doctor()
+        print(f"OK: {report['ok']}")
+        for k, v in report["checks"].items():
+            print(f"{k}: {'OK' if v else 'MISSING'}")
