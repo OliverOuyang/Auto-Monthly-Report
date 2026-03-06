@@ -65,6 +65,33 @@ python scripts/task_panel.py --host 127.0.0.1 --port 8765
 
 ---
 
+## 增强能力（2026-03）
+
+1. 统一错误处理：
+- `generate_report.main(..., fail_fast=False)` 默认单指标失败不中断全局。
+- 结果新增 `success_count`、`failed_count`、`errors` 字段。
+
+2. 结构化日志（JSONL）：
+- 每次运行输出 `export/runs/<run_id>/logs/run.jsonl`。
+- 关键事件：`run_start`、`indicator_start`、`indicator_success`、`indicator_failed`、`run_end`。
+
+3. 指标缓存（磁盘）：
+- 默认启用，缓存目录 `export/runs/cache/pivot/`。
+- 可通过 `--no-cache` 关闭。
+
+4. 新增 CLI 参数：
+```bash
+python generate_report.py run \
+  --excel "<excel>" \
+  --profile config/profiles/monthly_report_v2_full.yaml \
+  --output export/runs/run_xxx/ppt/report.pptx \
+  --emit-manifest \
+  --fail-fast \
+  --no-cache
+```
+
+---
+
 ## 项目维护
 
 ### 临时文件清理

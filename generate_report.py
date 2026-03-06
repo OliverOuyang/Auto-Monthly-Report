@@ -4,13 +4,19 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
+import importlib.util
 import json
 from datetime import datetime, timezone
-import importlib.util
 from pathlib import Path
 import sys
+import time
+import traceback
 
 from core import analyzer, chart_renderer, data_processor, excel_reader, html_generator, ppt_generator
+from core.cache import DiskCache
+from core.errors import IndicatorBuildError
+from core.logging_utils import log_event, setup_logger
 from core.profile_schema import validate_meta_list
 
 
@@ -108,10 +114,31 @@ def _write_run_manifest(
         "chart_paths": [str(p) for p in result["chart_paths"]],
         "html_paths": [str(p) for p in result["html_paths"]],
         "workspace": str(result["workspace"]) if result.get("workspace") else None,
+        "success_count": int(result.get("success_count", 0)),
+        "failed_count": int(result.get("failed_count", 0)),
+        "errors": result.get("errors", []),
     }
     path = root_dir / "manifest.json"
     path.write_text(json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8")
     return path
+
+
+def _cache_key_for_indicator(excel_path: str, meta: dict) -> str:
+    p = Path(excel_path)
+    mtime = p.stat().st_mtime if p.exists() else 0
+    payload = {
+        "excel_path": str(p.resolve()) if p.exists() else excel_path,
+        "excel_mtime": mtime,
+        "indicator_id": str(meta.get("indicator_id", "")),
+        "report_month": str(meta.get("report_month", "")),
+        "raw_sheet": str(meta.get("raw_sheet", "")),
+        "data_source_type": str(meta.get("data_source_type", "single")),
+        "categories": list(meta.get("categories", []) or []),
+        "merge_rules": dict(meta.get("merge_rules", {}) or {}),
+        "filter_exclude": list(meta.get("filter_exclude", []) or []),
+    }
+    text = json.dumps(payload, ensure_ascii=False, sort_keys=True)
+    return hashlib.sha256(text.encode("utf-8")).hexdigest()
 
 
 def validate_config(excel_path: str, profile_path: str | None = None) -> dict:
@@ -200,6 +227,16 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         action="store_true",
         help="Write run manifest.json to output root.",
     )
+    run.add_argument(
+        "--fail-fast",
+        action="store_true",
+        help="Stop immediately when one indicator fails.",
+    )
+    run.add_argument(
+        "--no-cache",
+        action="store_true",
+        help="Disable indicator pivot cache for this run.",
+    )
 
     validate = sub.add_parser("validate", help="Validate profile/meta and builder wiring.")
     validate.add_argument("--excel", required=True, help="Path to the source Excel file.")
@@ -209,6 +246,26 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     return parser.parse_args(args_in)
 
 
+def _build_pivot_with_fallback(excel_path: str, meta: dict) -> object:
+    indicator_id = meta["indicator_id"]
+    data_source_type = meta.get("data_source_type", "single")
+    if data_source_type == "derived":
+        builder_name = f"build_{indicator_id}_pivot"
+        builder = data_processor.get_indicator_builder(indicator_id)
+        if builder is None:
+            raise IndicatorBuildError(f"Derived builder not found: {builder_name}")
+        return builder(excel_path, meta)
+
+    pivot = excel_reader.read_pivot(excel_path, indicator_id)
+    if pivot is None:
+        raw_sheet = meta.get("raw_sheet")
+        if not raw_sheet:
+            raise IndicatorBuildError(f"Missing raw_sheet for indicator: {indicator_id}")
+        raw = excel_reader.read_raw(excel_path, raw_sheet)
+        pivot = data_processor.build_pivot(raw, meta)
+    return pivot
+
+
 def main(
     excel_path: str,
     indicator_ids: list[str] | None = None,
@@ -216,6 +273,8 @@ def main(
     profile_path: str | None = None,
     workspace: str | None = None,
     emit_manifest: bool = False,
+    fail_fast: bool = False,
+    use_cache: bool = True,
 ) -> dict:
     excel_path_obj = Path(excel_path)
     workspace_path = Path(workspace) if workspace else None
@@ -242,66 +301,117 @@ def main(
     meta_list = sorted(meta_list, key=lambda m: int(m.get("slide_order", 999)))
     prs = ppt_generator.create_presentation()
 
+    run_root = export_ppt_dir.parent
+    if run_root == Path("."):
+        run_root = Path("export/latest")
+    run_id = run_root.name
+    logger = setup_logger(run_root, run_id=run_id)
+    cache = DiskCache(run_root.parent / "cache")
+    log_event(logger, "run_start", run_id=run_id, message="run started")
+
     html_paths: list[Path] = []
     chart_paths: list[Path] = []
+    error_items: list[dict] = []
+    success_count = 0
 
-    # 用于缓存左图信息,以便与右图合并
     pending_left_chart = None
+    for idx, meta in enumerate(meta_list):
+        indicator_id = str(meta["indicator_id"])
+        trace_id = f"{indicator_id}-{idx + 1}"
+        started = time.perf_counter()
+        log_event(
+            logger,
+            "indicator_start",
+            run_id=run_id,
+            indicator_id=indicator_id,
+            trace_id=trace_id,
+            step="build",
+            message=f"building indicator {indicator_id}",
+        )
 
-    for i, meta in enumerate(meta_list):
-        indicator_id = meta["indicator_id"]
-        data_source_type = meta.get("data_source_type", "single")
+        try:
+            cache_key = _cache_key_for_indicator(excel_path, meta)
+            if use_cache:
+                pivot = cache.get_or_compute(
+                    "pivot",
+                    cache_key,
+                    lambda: _build_pivot_with_fallback(excel_path, meta),
+                )
+                log_event(
+                    logger,
+                    "cache_use",
+                    run_id=run_id,
+                    indicator_id=indicator_id,
+                    trace_id=trace_id,
+                    step="build",
+                    message="used cache lookup for pivot",
+                )
+            else:
+                pivot = _build_pivot_with_fallback(excel_path, meta)
 
-        if data_source_type == "derived":
-            builder_name = f"build_{indicator_id}_pivot"
-            builder = data_processor.get_indicator_builder(indicator_id)
-            if builder is None:
-                raise ValueError(f"Derived builder not found: {builder_name}")
-            pivot = builder(excel_path, meta)
-        else:
-            pivot = excel_reader.read_pivot(excel_path, indicator_id)
-            if pivot is None:
-                raw_sheet = meta.get("raw_sheet")
-                if not raw_sheet:
-                    raise ValueError(f"Missing raw_sheet for indicator: {indicator_id}")
-                raw = excel_reader.read_raw(excel_path, raw_sheet)
-                pivot = data_processor.build_pivot(raw, meta)
+            lines = analyzer.analyze(pivot, meta)
+            chart_path = chart_renderer.render(pivot, meta, styles, export_chart_dir)
+            html_path = html_generator.generate(pivot, meta, styles, lines, export_html_dir)
 
-        lines = analyzer.analyze(pivot, meta)
-        chart_path = chart_renderer.render(pivot, meta, styles, export_chart_dir)
-        html_path = html_generator.generate(pivot, meta, styles, lines, export_html_dir)
+            chart_paths.append(chart_path)
+            html_paths.append(html_path)
 
-        chart_paths.append(chart_path)
-        html_paths.append(html_path)
+            is_left_chart = meta.get("is_left_chart", False)
+            is_right_chart = meta.get("is_right_chart", False)
+            merge_with_prev = meta.get("merge_with_prev", False)
+            if is_left_chart:
+                pending_left_chart = {"meta": meta, "chart_path": chart_path, "lines": lines}
+            elif is_right_chart and merge_with_prev and pending_left_chart:
+                ppt_generator.add_dual_chart_slide(
+                    prs,
+                    left_meta=pending_left_chart["meta"],
+                    right_meta=meta,
+                    styles=styles,
+                    left_chart_path=pending_left_chart["chart_path"],
+                    right_chart_path=chart_path,
+                    lines=pending_left_chart["lines"],
+                )
+                pending_left_chart = None
+            else:
+                ppt_generator.add_slide(prs, meta, styles, chart_path, lines)
+                pending_left_chart = None
 
-        # 检查是否需要合并到前一个slide
-        is_left_chart = meta.get('is_left_chart', False)
-        is_right_chart = meta.get('is_right_chart', False)
-        merge_with_prev = meta.get('merge_with_prev', False)
-
-        if is_left_chart:
-            # 这是左图,缓存起来等待右图
-            pending_left_chart = {
-                'meta': meta,
-                'chart_path': chart_path,
-                'lines': lines
-            }
-        elif is_right_chart and merge_with_prev and pending_left_chart:
-            # 这是右图,且需要合并,使用dual_chart_slide
-            ppt_generator.add_dual_chart_slide(
-                prs,
-                left_meta=pending_left_chart['meta'],
-                right_meta=meta,
-                styles=styles,
-                left_chart_path=pending_left_chart['chart_path'],
-                right_chart_path=chart_path,
-                lines=pending_left_chart['lines']  # 使用左图的分析文字
+            success_count += 1
+            elapsed_ms = int((time.perf_counter() - started) * 1000)
+            log_event(
+                logger,
+                "indicator_success",
+                run_id=run_id,
+                indicator_id=indicator_id,
+                trace_id=trace_id,
+                step="done",
+                elapsed_ms=elapsed_ms,
+                message=f"indicator {indicator_id} done",
             )
-            pending_left_chart = None  # 清空缓存
-        else:
-            # 普通单图slide
-            ppt_generator.add_slide(prs, meta, styles, chart_path, lines)
-            pending_left_chart = None  # 清空缓存（防止左图后没有右图的情况）
+        except Exception as exc:
+            elapsed_ms = int((time.perf_counter() - started) * 1000)
+            error_items.append(
+                {
+                    "indicator_id": indicator_id,
+                    "error_type": exc.__class__.__name__,
+                    "message": str(exc),
+                    "trace_id": trace_id,
+                }
+            )
+            log_event(
+                logger,
+                "indicator_failed",
+                run_id=run_id,
+                indicator_id=indicator_id,
+                trace_id=trace_id,
+                step="failed",
+                elapsed_ms=elapsed_ms,
+                message=str(exc),
+            )
+            logger.debug(traceback.format_exc())
+            pending_left_chart = None
+            if fail_fast:
+                raise
 
     if pending_left_chart:
         ppt_generator.add_slide(
@@ -327,6 +437,9 @@ def main(
         "chart_paths": chart_paths,
         "indicator_count": len(meta_list),
         "workspace": workspace_path,
+        "success_count": success_count,
+        "failed_count": len(error_items),
+        "errors": error_items,
     }
     if emit_manifest:
         root_dir = Path(ppt_path).parent.parent if Path(ppt_path).parent.name.lower() == "ppt" else Path(ppt_path).parent
@@ -337,6 +450,14 @@ def main(
             indicator_ids=indicator_ids,
             result=result,
         )
+
+    log_event(
+        logger,
+        "run_end",
+        run_id=run_id,
+        step="done",
+        message="run finished",
+    )
     return result
 
 
@@ -350,14 +471,19 @@ if __name__ == "__main__":
             profile_path=args.profile,
             workspace=args.workspace,
             emit_manifest=args.emit_manifest,
+            fail_fast=args.fail_fast,
+            use_cache=not args.no_cache,
         )
         print(f"Generated {result['indicator_count']} indicators.")
+        print(f"Success: {result['success_count']}, Failed: {result['failed_count']}")
         print(f"PPT: {result['ppt_path']}")
         for html_path in result["html_paths"]:
             print(f"HTML: {html_path}")
         print(f"HTML(all): {result['combined_html_path']}")
         if result.get("manifest_path"):
             print(f"Manifest: {result['manifest_path']}")
+        for item in result["errors"]:
+            print(f"ERROR[{item['indicator_id']}]: {item['error_type']} {item['message']}")
     elif args.command == "validate":
         report = validate_config(excel_path=args.excel, profile_path=args.profile)
         print(f"OK: {report['ok']}")

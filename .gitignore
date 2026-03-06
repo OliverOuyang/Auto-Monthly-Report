@@ -37,3 +37,8 @@ temp_*.csv
 task_panel.out.log
 task_panel.err.log
 pytest-cache-files-*/
+cache/
+html/
+logs/
+tests/.tmp_*/
+tests/cache/
