@@ -10,6 +10,13 @@
 
 ## 快速开始
 
+### 0. 安装 Git Hooks（推荐）
+```bash
+python scripts/install_hooks.py install
+```
+
+这会启用自动化检查，每次提交前自动清理临时文件并检查代码语法。详见 `hooks/README.md`。
+
 ### 1. 环境检查
 ```bash
 python generate_report.py doctor
@@ -55,6 +62,26 @@ python scripts/task_panel.py --host 127.0.0.1 --port 8765
 4. `core/chart_renderer.py` + `config/chart_types.py`：图表渲染
 5. `core/html_generator.py` / `core/ppt_generator.py`：HTML/PPT 输出
 6. `tests/`：核心回归测试
+
+---
+
+## 项目维护
+
+### 临时文件清理
+```bash
+# 预览将要清理的文件
+python scripts/clean_temp_files.py --dry-run
+
+# 实际执行清理
+python scripts/clean_temp_files.py
+```
+
+### 健康检查
+```bash
+python scripts/health_check.py
+```
+
+详见 `scripts/README_TOOLS.md`。
 
 ---
 
