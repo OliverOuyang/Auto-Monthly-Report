@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>腾讯竞得率</title>
+<script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family:'Microsoft YaHei','SimHei',sans-serif; background:#fff; }
+.page { max-width:1200px; margin:0 auto; padding:40px 50px; }
+.title { font-size:22px; font-weight:bold; color:#8B4513; }
+.line { height:3px; background:linear-gradient(to right,#DAA520,#F0E68C); margin:6px 0 18px; }
+.summary { font-size:15px; color:#333; line-height:1.9; margin-bottom:10px; }
+#chart { width:100%; height:500px; }
+.bar { height:6px; background:linear-gradient(to right,#C0392B,#F5B7B1,#FADBD8); margin-top:25px; border-radius:2px; }
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="title">腾讯转化—竞得率</div>
+  <div class="line"></div>
+  <div class="summary">2月整体竞得率0.46%,环比1月上升0.10个百分点<br/>近3个月竞得率持续上升</div>
+  <div id="chart"></div>
+  <div class="bar"></div>
+</div>
+<script>
+var chart = echarts.init(document.getElementById('chart'));
+chart.setOption({
+  title:{ text:'腾讯竞得率', left:'center', top:0,
+           textStyle:{ fontSize:15, fontWeight:'bold', color:'#333' } },
+  tooltip:{ trigger:'axis', axisPointer:{ type:'line' } },
+  legend:{ bottom:0, data:["整体竞得率"],
+            itemWidth:14, itemHeight:10, textStyle:{ fontSize:11 } },
+  grid:{ left:'3%', right:'3%', top:45, bottom:45, containLabel:true },
+  xAxis:{ type:'category', data:["Jul-25", "Aug-25", "Sep-25", "Oct-25", "Nov-25", "Dec-25", "Jan-26", "Feb-26"],
+           axisLabel:{ fontSize:11, color:'#555' } },
+  yAxis:{ type:'value',
+           axisLabel:{ formatter:'{value}%', fontSize:10, color:'#555' },
+           splitLine:{ show:true, lineStyle:{ color:'#DDDDDD', type:'solid' } } },
+  series: [{"name": "整体竞得率", "type": "line", "data": [0.6, 0.6, 0.6, 0.3, 0.4, 0.4, 0.4, 0.5], "symbol": "circle", "symbolSize": 6, "lineStyle": {"color": "#000000", "width": 3}, "itemStyle": {"color": "#000000"}, "label": {"show": true, "position": "top", "fontSize": 10, "fontWeight": "bold", "formatter": "{c}%"}}]
+});
+window.addEventListener('resize', function(){ chart.resize(); });
+</script>
+</body>
+</html>

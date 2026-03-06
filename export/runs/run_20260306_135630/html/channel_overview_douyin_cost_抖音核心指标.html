@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>抖音核心指标</title>
+<script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family:'Microsoft YaHei','SimHei',sans-serif; background:#fff; }
+.page { max-width:1200px; margin:0 auto; padding:40px 50px; }
+.title { font-size:22px; font-weight:bold; color:#8B4513; }
+.line { height:3px; background:linear-gradient(to right,#DAA520,#F0E68C); margin:6px 0 18px; }
+.summary { font-size:15px; color:#333; line-height:1.9; margin-bottom:10px; }
+#chart { width:100%; height:500px; }
+.bar { height:6px; background:linear-gradient(to right,#C0392B,#F5B7B1,#FADBD8); margin-top:25px; border-radius:2px; }
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="title">抖音总览：规模不足、指标波动较大;短期适当放开排除、提出价方式提升规模</div>
+  <div class="line"></div>
+  <div class="summary">抖音总览: 规模不足、指标波动较大;短期适当放开排除、提出价方式提升规模<br/>数据表现: 成本由28.3%下降至24.5%,日耗下降3万<br/>当前问题: 当前规模较低、成本及质量波动较大<br/>未来方向: 短期适当放开排除、提升出价方式提升规模,同时优化用户质量</div>
+  <div id="chart"></div>
+  <div class="bar"></div>
+</div>
+<script>
+var chart = echarts.init(document.getElementById('chart'));
+chart.setOption({
+  title:{ text:'抖音核心指标', left:'center', top:0,
+           textStyle:{ fontSize:15, fontWeight:'bold', color:'#333' } },
+  tooltip:{ trigger:'axis', axisPointer:{ type:'shadow' } },
+  legend:{ bottom:0, data:["日耗", "T0CPS_24h"],
+            itemWidth:14, itemHeight:10, textStyle:{ fontSize:11 } },
+  grid:{ left:'3%', right:'3%', top:45, bottom:45, containLabel:true },
+  xAxis:{ type:'category', data:["Jan-25", "Feb-25", "Mar-25", "Apr-25", "May-25", "Jun-25", "Jul-25", "Aug-25", "Sep-25", "Oct-25", "Nov-25", "Dec-25", "Jan-26", "Feb-26"],
+           axisLabel:{ fontSize:11, color:'#555' } },
+  yAxis:[
+    { type:'value', name:'日耗',
+       axisLabel:{ fontSize:10, color:'#555' },
+       splitLine:{ show:true, lineStyle:{ color:'#EEEEEE' } } },
+    { type:'value', name:'过件率',
+       axisLabel:{ formatter:'{value}%', fontSize:10, color:'#555' },
+       splitLine:{ show:false } }
+  ],
+  series: [{"name": "日耗", "type": "bar", "data": [164.96, 134.39, 109.65, 125.07, 140.48, 148.1, 132.61, 142.94, 110.76, 76.07, 53.97, 34.91, 36.38, 33.52], "barWidth": "40%", "itemStyle": {"color": "#4472C4"}, "yAxisIndex": 0, "label": {"show": true, "position": "inside", "fontSize": 9, "fontWeight": "bold", "formatter": "{c}"}}, {"name": "T0CPS_24h", "type": "line", "data": [29.0, 37.9, 31.6, 33.7, 33.1, 30.4, 28.0, 28.5, 26.9, 25.9, 27.5, 25.5, 28.3, 24.5], "symbol": "circle", "symbolSize": 5, "lineStyle": {"color": "#ED7D31", "width": 2.5}, "itemStyle": {"color": "#ED7D31"}, "yAxisIndex": 1, "label": {"show": true, "position": "top", "fontSize": 9, "fontWeight": "bold", "formatter": "{c}%"}}]
+});
+window.addEventListener('resize', function(){ chart.resize(); });
+</script>
+</body>
+</html>

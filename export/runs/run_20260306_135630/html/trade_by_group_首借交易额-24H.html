@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>首借交易额-24H</title>
+<script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family:'Microsoft YaHei','SimHei',sans-serif; background:#fff; }
+.page { max-width:1200px; margin:0 auto; padding:40px 50px; }
+.title { font-size:22px; font-weight:bold; color:#8B4513; }
+.line { height:3px; background:linear-gradient(to right,#DAA520,#F0E68C); margin:6px 0 18px; }
+.summary { font-size:15px; color:#333; line-height:1.9; margin-bottom:10px; }
+#chart { width:100%; height:500px; }
+.bar { height:6px; background:linear-gradient(to right,#C0392B,#F5B7B1,#FADBD8); margin-top:25px; border-radius:2px; }
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="title">获客规模指标：1-7评级首借交易 By客群</div>
+  <div class="line"></div>
+  <div class="summary">2月1-7评级首借交易（24h口径）总额4.80亿元，环比1月减少1.6亿，下降25.1%；<br/>各客群交易全线收缩，当月首登M0减少0.8亿（降21%）为主要拖累项，非初审降幅最大（降52%），API回流趋近于零。<br/>自2025年9月高峰（13.3亿）以来已连续5个月下滑。</div>
+  <div id="chart"></div>
+  <div class="bar"></div>
+</div>
+<script>
+var chart = echarts.init(document.getElementById('chart'));
+var months = ["Jan-25", "Feb-25", "Mar-25", "Apr-25", "May-25", "Jun-25", "Jul-25", "Aug-25", "Sep-25", "Oct-25", "Nov-25", "Dec-25", "Jan-26", "Feb-26"];
+var labels = {"当月首登M0": ["9.0亿", "5.3亿", "5.4亿", "5.9亿", "7.2亿", "7.8亿", "6.8亿", "8.2亿", "8.2亿", "6.3亿", "5.0亿", "4.1亿", "3.8亿", "3.0亿"], "存量首登M0": ["2.5亿", "1.6亿", "1.6亿", "1.6亿", "2.0亿", "2.1亿", "1.9亿", "2.1亿", "2.3亿", "1.8亿", "1.4亿", "1.2亿", "1.0亿", "0.9亿"], "初审M1+": ["1.9亿", "1.3亿", "1.3亿", "1.4亿", "1.4亿", "1.5亿", "1.4亿", "1.6亿", "1.7亿", "1.6亿", "1.4亿", "1.1亿", "1.1亿", "0.7亿"], "非初审": ["1.2亿", "1.2亿", "1.9亿", "1.9亿", "1.4亿", "1.3亿", "0.9亿", "0.9亿", "0.8亿", "1.0亿", "1.4亿", "0.7亿", "0.4亿", "0.2亿"], "API回流": ["0.4亿", "0.3亿", "0.3亿", "0.3亿", "0.4亿", "0.3亿", "0.3亿", "0.3亿", "0.2亿", "0.2亿", "", "", "", ""], "总计": ["15.0亿", "9.7亿", "10.6亿", "11.1亿", "12.4亿", "13.0亿", "11.2亿", "13.1亿", "13.3亿", "10.9亿", "9.3亿", "7.2亿", "6.4亿", "4.8亿"]};
+var rawSeries = [{"name": "当月首登M0", "type": "bar", "stack": "t", "barWidth": "50%", "itemStyle": {"color": "#1F4E79"}, "data": [9.0014, 5.3494, 5.4435, 5.886, 7.2146, 7.7785, 6.7996, 8.1669, 8.2364, 6.2722, 4.9737, 4.0954, 3.839, 3.0237], "label": {"show": true, "position": "insideRight", "fontSize": 10, "color": "#5A5A5A", "fontWeight": "bold"}}, {"name": "存量首登M0", "type": "bar", "stack": "t", "barWidth": "50%", "itemStyle": {"color": "#ED7D31"}, "data": [2.5029, 1.5897, 1.6374, 1.6442, 1.9682, 2.1313, 1.8572, 2.1274, 2.3266, 1.8159, 1.4393, 1.2055, 1.048, 0.8935], "label": {"show": true, "position": "insideRight", "fontSize": 10, "color": "#5A5A5A", "fontWeight": "bold"}}, {"name": "初审M1+", "type": "bar", "stack": "t", "barWidth": "50%", "itemStyle": {"color": "#FFC000"}, "data": [1.8506, 1.2657, 1.3067, 1.4146, 1.4375, 1.4776, 1.426, 1.5751, 1.694, 1.6043, 1.4047, 1.1451, 1.0537, 0.6763], "label": {"show": true, "position": "insideRight", "fontSize": 10, "color": "#5A5A5A", "fontWeight": "bold"}}, {"name": "非初审", "type": "bar", "stack": "t", "barWidth": "50%", "itemStyle": {"color": "#70AD47"}, "data": [1.2154, 1.2138, 1.9481, 1.8757, 1.4476, 1.329, 0.8684, 0.9006, 0.7712, 1.0364, 1.3718, 0.7028, 0.4325, 0.2094], "label": {"show": true, "position": "insideRight", "fontSize": 10, "color": "#5A5A5A", "fontWeight": "bold"}}, {"name": "API回流", "type": "bar", "stack": "t", "barWidth": "50%", "itemStyle": {"color": "#5B9BD5"}, "data": [0.3885, 0.2722, 0.311, 0.2912, 0.357, 0.3311, 0.2759, 0.2904, 0.234, 0.201, 0.1386, 0.0703, 0.0389, 0.0008], "label": {"show": true, "position": "insideRight", "fontSize": 10, "color": "#5A5A5A", "fontWeight": "bold"}}, {"name": "总计", "type": "line", "data": [14.9587, 9.6909, 10.6467, 11.1116, 12.4248, 13.0474, 11.227, 13.0604, 13.2622, 10.9298, 9.3281, 7.2192, 6.412, 4.8037], "symbol": "circle", "symbolSize": 6, "lineStyle": {"color": "#FF0000", "width": 3}, "itemStyle": {"color": "#FF0000"}, "label": {"show": true, "position": "top", "fontSize": 11, "color": "#FF0000", "fontWeight": "bold"}, "z": 10}];
+
+// 注入 label formatter
+rawSeries.forEach(function(s) {
+  var name = s.name;
+  if (labels[name]) {
+    s.label.formatter = function(p) { return labels[name][p.dataIndex]; };
+  }
+});
+
+chart.setOption({
+  title:{ text:'首借交易额-24H', left:'center', top:0,
+           textStyle:{ fontSize:15, fontWeight:'bold', color:'#333' } },
+  tooltip:{
+    trigger:'axis', axisPointer:{ type:'shadow' },
+    formatter: function(ps) {
+      var h='<b>'+ps[0].axisValue+'</b><br/>', t=0;
+      ps.forEach(function(p){
+        if(p.seriesName!=='总计'){
+          h+=p.marker+' '+p.seriesName+': '+p.value.toFixed(2)+'亿<br/>'; t+=p.value;
+        }
+      });
+      return h+'<b>总计: '+t.toFixed(2)+'亿</b>';
+    }
+  },
+  legend:{ bottom:0, data:["当月首登M0", "存量首登M0", "初审M1+", "非初审", "API回流", "总计"],
+            itemWidth:14, itemHeight:10, textStyle:{ fontSize:11 } },
+  grid:{ left:'2%', right:'2%', top:45, bottom:45, containLabel:true },
+  xAxis:{ type:'category', data:months,
+           axisLabel:{ fontSize:11, color:'#555' },
+           axisTick:{ alignWithLabel:true } },
+  yAxis:{ type:'value', show:false },
+  series: rawSeries
+});
+window.addEventListener('resize', function(){ chart.resize(); });
+</script>
+</body>
+</html>

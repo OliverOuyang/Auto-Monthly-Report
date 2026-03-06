@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CPS</title>
+<script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family:'Microsoft YaHei','SimHei',sans-serif; background:#fff; }
+.page { max-width:1200px; margin:0 auto; padding:40px 50px; }
+.title { font-size:22px; font-weight:bold; color:#8B4513; }
+.line { height:3px; background:linear-gradient(to right,#DAA520,#F0E68C); margin:6px 0 18px; }
+.summary { font-size:15px; color:#333; line-height:1.9; margin-bottom:10px; }
+#chart { width:100%; height:500px; }
+.bar { height:6px; background:linear-gradient(to right,#C0392B,#F5B7B1,#FADBD8); margin-top:25px; border-radius:2px; }
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="title">获客效率指标：1-7评级CPS</div>
+  <div class="line"></div>
+  <div class="summary">2月1-7全首借CPS为5.97%，环比下降0.65个百分点；1-7 T0CPS为14.62%，环比下降3.03个百分点。<br/>当前CPS较2025年5月高点（9.37%）有所回落。</div>
+  <div id="chart"></div>
+  <div class="bar"></div>
+</div>
+<script>
+var chart = echarts.init(document.getElementById('chart'));
+chart.setOption({
+  title:{ text:'CPS', left:'center', top:0,
+           textStyle:{ fontSize:15, fontWeight:'bold', color:'#333' } },
+  tooltip:{ trigger:'axis', axisPointer:{ type:'line' } },
+  legend:{ bottom:0, data:["1-7全首借CPS", "1-7 T0CPS"],
+            itemWidth:14, itemHeight:10, textStyle:{ fontSize:11 } },
+  grid:{ left:'3%', right:'3%', top:45, bottom:45, containLabel:true },
+  xAxis:{ type:'category', data:["Jan-25", "Feb-25", "Mar-25", "Apr-25", "May-25", "Jun-25", "Jul-25", "Aug-25", "Sep-25", "Oct-25", "Nov-25", "Dec-25", "Jan-26", "Feb-26"],
+           axisLabel:{ fontSize:11, color:'#555' } },
+  yAxis:{ type:'value',
+           axisLabel:{ formatter:'{value}%', fontSize:10, color:'#555' },
+           splitLine:{ show:true, lineStyle:{ color:'#DDDDDD', type:'solid' } } },
+  series: [{"name": "1-7全首借CPS", "type": "line", "data": [7.2, 9.0, 7.6, 8.6, 9.4, 9.1, 8.8, 8.6, 7.7, 6.5, 6.7, 6.8, 6.6, 6.0], "symbol": "circle", "symbolSize": 6, "lineStyle": {"color": "#4472C4", "width": 3}, "itemStyle": {"color": "#4472C4"}, "label": {"show": true, "position": "top", "fontSize": 10, "fontWeight": "bold", "formatter": "{c}%"}}, {"name": "1-7 T0CPS", "type": "line", "data": [18.3, 23.0, 20.9, 23.2, 23.8, 22.4, 21.8, 21.0, 19.6, 17.5, 19.4, 18.0, 17.6, 14.6], "symbol": "circle", "symbolSize": 6, "lineStyle": {"color": "#ED7D31", "width": 3}, "itemStyle": {"color": "#ED7D31"}, "label": {"show": true, "position": "top", "fontSize": 10, "fontWeight": "bold", "formatter": "{c}%"}}]
+});
+window.addEventListener('resize', function(){ chart.resize(); });
+</script>
+</body>
+</html>

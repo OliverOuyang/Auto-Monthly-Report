@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>业务口径花费-by渠道</title>
+<script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family:'Microsoft YaHei','SimHei',sans-serif; background:#fff; }
+.page { max-width:1200px; margin:0 auto; padding:40px 50px; }
+.title { font-size:22px; font-weight:bold; color:#8B4513; }
+.line { height:3px; background:linear-gradient(to right,#DAA520,#F0E68C); margin:6px 0 18px; }
+.summary { font-size:15px; color:#333; line-height:1.9; margin-bottom:10px; }
+#chart { width:100%; height:500px; }
+.bar { height:6px; background:linear-gradient(to right,#C0392B,#F5B7B1,#FADBD8); margin-top:25px; border-radius:2px; }
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="title">获客规模指标：花费 By渠道</div>
+  <div class="line"></div>
+  <div class="summary">2月业务口径花费总额2603.4万元，环比1月减少1325.8万，变化33.7%；<br/>主要变化：腾讯减少545.1万（降33%）。</div>
+  <div id="chart"></div>
+  <div class="bar"></div>
+</div>
+<script>
+var chart = echarts.init(document.getElementById('chart'));
+var months = ["Jan-25", "Feb-25", "Mar-25", "Apr-25", "May-25", "Jun-25", "Jul-25", "Aug-25", "Sep-25", "Oct-25", "Nov-25", "Dec-25", "Jan-26", "Feb-26"];
+var labels = {"腾讯": ["3318.8万", "3006.7万", "2761.9万", "3351.1万", "4365.8万", "4733.4万", "3672.4万", "3857.0万", "3798.0万", "1930.7万", "2353.4万", "2015.1万", "1656.9万", "1111.9万"], "抖音": ["5113.8万", "3762.9万", "3399.1万", "3752.2万", "4354.9万", "4442.9万", "4111.1万", "4431.0万", "3322.7万", "2358.2万", "1619.2万", "1082.1万", "1127.7万", "938.5万"], "精准营销": ["1210.8万", "775.7万", "572.3万", "1087.6万", "1553.4万", "1228.9万", "792.4万", "1362.4万", "1690.1万", "1468.8万", "1184.5万", "887.0万", "930.3万", "414.5万"], "付费商店": ["327.3万", "295.7万", "344.9万", "494.7万", "614.4万", "628.4万", "552.0万", "683.6万", "603.6万", "414.1万", "312.3万", "181.3万", "179.3万", "129.8万"], "其他信息流": ["135.6万", "96.9万", "86.8万", "81.4万", "92.2万", "151.2万", "210.9万", "176.6万", "175.4万", "143.6万", "47.3万", "40.8万", "35.1万", "8.8万"], "其他CPA渠道": ["59.8万", "40.9万", "41.6万", "35.8万", "33.6万", "30.5万", "28.1万", "44.5万", "52.1万", "47.1万", "35.3万", "3.6万", "", ""], "MGM": ["6.3万", "7.5万", "11.0万", "6.4万", "8.2万", "4.6万", "3.2万", "2.0万", "1.3万", "0.9万", "", "", "", ""], "总计": ["10172.3万", "7986.3万", "7217.6万", "8809.1万", "11022.6万", "11219.9万", "9370.1万", "10557.1万", "9643.2万", "6363.5万", "5552.1万", "4209.7万", "3929.3万", "2603.4万"]};
+var rawSeries = [{"name": "腾讯", "type": "bar", "stack": "t", "barWidth": "50%", "itemStyle": {"color": "#1F4E79"}, "data": [3318.7801, 3006.7294, 2761.9166, 3351.0539, 4365.8146, 4733.3559, 3672.3536, 3856.9818, 3798.0145, 1930.7421, 2353.4081, 2015.0527, 1656.9373, 1111.8578], "label": {"show": true, "position": "insideRight", "fontSize": 10, "color": "#5A5A5A", "fontWeight": "bold"}}, {"name": "抖音", "type": "bar", "stack": "t", "barWidth": "50%", "itemStyle": {"color": "#ED7D31"}, "data": [5113.8496, 3762.8642, 3399.0695, 3752.1982, 4354.8738, 4442.9412, 4111.0539, 4431.0009, 3322.7045, 2358.23, 1619.2049, 1082.0706, 1127.688, 938.4891], "label": {"show": true, "position": "insideRight", "fontSize": 10, "color": "#5A5A5A", "fontWeight": "bold"}}, {"name": "精准营销", "type": "bar", "stack": "t", "barWidth": "50%", "itemStyle": {"color": "#FFC000"}, "data": [1210.765, 775.742, 572.28, 1087.625, 1553.42, 1228.91, 792.425, 1362.43, 1690.115, 1468.835, 1184.52, 886.965, 930.29, 414.52], "label": {"show": true, "position": "insideRight", "fontSize": 10, "color": "#5A5A5A", "fontWeight": "bold"}}, {"name": "付费商店", "type": "bar", "stack": "t", "barWidth": "50%", "itemStyle": {"color": "#70AD47"}, "data": [327.2785, 295.7275, 344.9467, 494.65, 614.367, 628.4124, 551.989, 683.6192, 603.6062, 414.0742, 312.3191, 181.3029, 179.2701, 129.7765], "label": {"show": true, "position": "insideRight", "fontSize": 10, "color": "#5A5A5A", "fontWeight": "bold"}}, {"name": "其他信息流", "type": "bar", "stack": "t", "barWidth": "50%", "itemStyle": {"color": "#9DC3E6"}, "data": [135.5544, 96.9019, 86.7846, 81.4043, 92.2239, 151.1955, 210.9453, 176.6026, 175.3689, 143.6124, 47.2811, 40.7509, 35.0872, 8.7811], "label": {"show": true, "position": "insideRight", "fontSize": 10, "color": "#5A5A5A", "fontWeight": "bold"}}, {"name": "其他CPA渠道", "type": "bar", "stack": "t", "barWidth": "50%", "itemStyle": {"color": "#FF8080"}, "data": [59.766, 40.8855, 41.6095, 35.7694, 33.6108, 30.5049, 28.0789, 44.5171, 52.0572, 47.0637, 35.3217, 3.566, 0.0, 0.0], "label": {"show": true, "position": "insideRight", "fontSize": 10, "color": "#5A5A5A", "fontWeight": "bold"}}, {"name": "MGM", "type": "bar", "stack": "t", "barWidth": "50%", "itemStyle": {"color": "#404040"}, "data": [6.281, 7.482, 11.027, 6.445, 8.242, 4.586, 3.221, 1.99, 1.307, 0.948, 0.0, 0.0, 0.0, 0.0], "label": {"show": true, "position": "insideRight", "fontSize": 10, "color": "#5A5A5A", "fontWeight": "bold"}}, {"name": "总计", "type": "line", "data": [10172.2746, 7986.3324, 7217.6339, 8809.1458, 11022.552, 11219.9058, 9370.0668, 10557.1415, 9643.1733, 6363.5054, 5552.0549, 4209.7082, 3929.2726, 2603.4245], "symbol": "circle", "symbolSize": 6, "lineStyle": {"color": "#FF0000", "width": 3}, "itemStyle": {"color": "#FF0000"}, "label": {"show": true, "position": "top", "fontSize": 11, "color": "#FF0000", "fontWeight": "bold"}, "z": 10}];
+
+// 注入 label formatter
+rawSeries.forEach(function(s) {
+  var name = s.name;
+  if (labels[name]) {
+    s.label.formatter = function(p) { return labels[name][p.dataIndex]; };
+  }
+});
+
+chart.setOption({
+  title:{ text:'业务口径花费-by渠道', left:'center', top:0,
+           textStyle:{ fontSize:15, fontWeight:'bold', color:'#333' } },
+  tooltip:{
+    trigger:'axis', axisPointer:{ type:'shadow' },
+    formatter: function(ps) {
+      var h='<b>'+ps[0].axisValue+'</b><br/>', t=0;
+      ps.forEach(function(p){
+        if(p.seriesName!=='总计'){
+          h+=p.marker+' '+p.seriesName+': '+p.value.toFixed(2)+'万<br/>'; t+=p.value;
+        }
+      });
+      return h+'<b>总计: '+t.toFixed(2)+'万</b>';
+    }
+  },
+  legend:{ bottom:0, data:["腾讯", "抖音", "精准营销", "付费商店", "其他信息流", "其他CPA渠道", "MGM", "总计"],
+            itemWidth:14, itemHeight:10, textStyle:{ fontSize:11 } },
+  grid:{ left:'2%', right:'2%', top:45, bottom:45, containLabel:true },
+  xAxis:{ type:'category', data:months,
+           axisLabel:{ fontSize:11, color:'#555' },
+           axisTick:{ alignWithLabel:true } },
+  yAxis:{ type:'value', show:false },
+  series: rawSeries
+});
+window.addEventListener('resize', function(){ chart.resize(); });
+</script>
+</body>
+</html>

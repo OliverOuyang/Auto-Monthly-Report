@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>精准质量表现</title>
+<script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family:'Microsoft YaHei','SimHei',sans-serif; background:#fff; }
+.page { max-width:1200px; margin:0 auto; padding:40px 50px; }
+.title { font-size:22px; font-weight:bold; color:#8B4513; }
+.line { height:3px; background:linear-gradient(to right,#DAA520,#F0E68C); margin:6px 0 18px; }
+.summary { font-size:15px; color:#333; line-height:1.9; margin-bottom:10px; }
+#chart { width:100%; height:500px; }
+.bar { height:6px; background:linear-gradient(to right,#C0392B,#F5B7B1,#FADBD8); margin-top:25px; border-radius:2px; }
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="title">精准总览：质量提升显著,持续优化用户质量结构</div>
+  <div class="line"></div>
+  <div class="summary">质量指标: 1-7额度19813元(环比下降433元),1-3过件率15.9%(环比提升0.0pp),1-7过件率53.9%(环比下降0.8pp)<br/>趋势观察: 近3个月额度呈上升趋势,从18681元升至19813元</div>
+  <div id="chart"></div>
+  <div class="bar"></div>
+</div>
+<script>
+var chart = echarts.init(document.getElementById('chart'));
+chart.setOption({
+  title:{ text:'精准质量表现', left:'center', top:0,
+           textStyle:{ fontSize:15, fontWeight:'bold', color:'#333' } },
+  tooltip:{ trigger:'axis', axisPointer:{ type:'shadow' } },
+  legend:{ bottom:0, data:["1-7额度", "过件率1-3_排年龄", "过件率1-7_排年龄"],
+            itemWidth:14, itemHeight:10, textStyle:{ fontSize:11 } },
+  grid:{ left:'3%', right:'3%', top:45, bottom:45, containLabel:true },
+  xAxis:{ type:'category', data:["Jan-25", "Feb-25", "Mar-25", "Apr-25", "May-25", "Jun-25", "Jul-25", "Aug-25", "Sep-25", "Oct-25", "Nov-25", "Dec-25", "Jan-26", "Feb-26"],
+           axisLabel:{ fontSize:11, color:'#555' } },
+  yAxis:[
+    { type:'value', name:'1-7额度',
+       axisLabel:{ fontSize:10, color:'#555' },
+       splitLine:{ show:true, lineStyle:{ color:'#EEEEEE' } } },
+    { type:'value', name:'过件率',
+       axisLabel:{ formatter:'{value}%', fontSize:10, color:'#555' },
+       splitLine:{ show:false } }
+  ],
+  series: [{"name": "1-7额度", "type": "bar", "data": [20261.68, 19969.57, 20445.38, 20847.76, 20131.2, 19749.98, 20349.39, 21078.89, 21862.99, 22421.34, 18370.27, 18681.2, 20245.33, 19812.82], "barWidth": "40%", "itemStyle": {"color": "#FFC000"}, "yAxisIndex": 0, "label": {"show": true, "position": "inside", "fontSize": 9, "fontWeight": "bold", "formatter": "{c}"}}, {"name": "过件率1-3_排年龄", "type": "line", "data": [10.2, 9.0, 8.2, 9.4, 8.3, 7.8, 8.6, 9.0, 9.2, 8.8, 9.1, 10.5, 15.9, 15.9], "symbol": "circle", "symbolSize": 5, "lineStyle": {"color": "#4472C4", "width": 2.5}, "itemStyle": {"color": "#4472C4"}, "yAxisIndex": 1, "label": {"show": true, "position": "top", "fontSize": 9, "fontWeight": "bold", "formatter": "{c}%"}}, {"name": "过件率1-7_排年龄", "type": "line", "data": [44.4, 41.0, 41.3, 42.4, 39.8, 40.0, 42.2, 42.6, 40.5, 38.5, 41.0, 44.5, 54.7, 53.9], "symbol": "circle", "symbolSize": 5, "lineStyle": {"color": "#4472C4", "width": 2.5}, "itemStyle": {"color": "#4472C4"}, "yAxisIndex": 1, "label": {"show": true, "position": "top", "fontSize": 9, "fontWeight": "bold", "formatter": "{c}%"}}]
+});
+window.addEventListener('resize', function(){ chart.resize(); });
+</script>
+</body>
+</html>

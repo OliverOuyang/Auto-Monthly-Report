@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>腾讯竞得率byV7preA</title>
+<script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family:'Microsoft YaHei','SimHei',sans-serif; background:#fff; }
+.page { max-width:1200px; margin:0 auto; padding:40px 50px; }
+.title { font-size:22px; font-weight:bold; color:#8B4513; }
+.line { height:3px; background:linear-gradient(to right,#DAA520,#F0E68C); margin:6px 0 18px; }
+.summary { font-size:15px; color:#333; line-height:1.9; margin-bottom:10px; }
+#chart { width:100%; height:500px; }
+.bar { height:6px; background:linear-gradient(to right,#C0392B,#F5B7B1,#FADBD8); margin-top:25px; border-radius:2px; }
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="title"></div>
+  <div class="line"></div>
+  <div class="summary">分组表现: 1Q:0.28%, 2Q:0.66%, 3Q:1.33%, UNK:0.13%</div>
+  <div id="chart"></div>
+  <div class="bar"></div>
+</div>
+<script>
+var chart = echarts.init(document.getElementById('chart'));
+chart.setOption({
+  title:{ text:'腾讯竞得率byV7preA', left:'center', top:0,
+           textStyle:{ fontSize:15, fontWeight:'bold', color:'#333' } },
+  tooltip:{ trigger:'axis', axisPointer:{ type:'line' } },
+  legend:{ bottom:0, data:["1Q竞得率", "2Q竞得率", "3Q竞得率", "UNK竞得率"],
+            itemWidth:14, itemHeight:10, textStyle:{ fontSize:11 } },
+  grid:{ left:'3%', right:'3%', top:45, bottom:45, containLabel:true },
+  xAxis:{ type:'category', data:["Jul-25", "Aug-25", "Sep-25", "Oct-25", "Nov-25", "Dec-25", "Jan-26", "Feb-26"],
+           axisLabel:{ fontSize:11, color:'#555' } },
+  yAxis:{ type:'value',
+           axisLabel:{ formatter:'{value}%', fontSize:10, color:'#555' },
+           splitLine:{ show:true, lineStyle:{ color:'#DDDDDD', type:'solid' } } },
+  series: [{"name": "1Q竞得率", "type": "line", "data": [0.4, 0.4, 0.4, 0.2, 0.2, 0.2, 0.3, 0.3], "symbol": "circle", "symbolSize": 5, "lineStyle": {"color": "#4472C4", "width": 2.5}, "itemStyle": {"color": "#4472C4"}, "label": {"show": true, "position": "top", "fontSize": 10, "color": "#4472C4", "fontWeight": "bold", "formatter": "{c}%"}, "markLine": {"silent": false, "symbol": ["none", "arrow"], "data": [{"xAxis": 6, "label": {"formatter": "RTAV9出价优化", "position": "end", "fontSize": 10, "color": "#D73027", "fontWeight": "bold"}, "lineStyle": {"color": "#D73027", "type": "dashed", "width": 2}}]}}, {"name": "2Q竞得率", "type": "line", "data": [0.9, 1.0, 1.0, 0.5, 0.6, 0.5, 0.5, 0.7], "symbol": "circle", "symbolSize": 5, "lineStyle": {"color": "#ED7D31", "width": 2.5}, "itemStyle": {"color": "#ED7D31"}, "label": {"show": true, "position": "top", "fontSize": 10, "color": "#ED7D31", "fontWeight": "bold", "formatter": "{c}%"}}, {"name": "3Q竞得率", "type": "line", "data": [0.9, 1.0, 1.0, 0.5, 0.7, 0.6, 0.8, 1.3], "symbol": "circle", "symbolSize": 5, "lineStyle": {"color": "#FFC000", "width": 2.5}, "itemStyle": {"color": "#FFC000"}, "label": {"show": true, "position": "top", "fontSize": 10, "color": "#FFC000", "fontWeight": "bold", "formatter": "{c}%"}}, {"name": "UNK竞得率", "type": "line", "data": [0.6, 0.5, 0.5, 0.2, 0.3, 0.2, 0.1, 0.1], "symbol": "circle", "symbolSize": 5, "lineStyle": {"color": "#808080", "width": 2.5}, "itemStyle": {"color": "#808080"}, "label": {"show": true, "position": "top", "fontSize": 10, "color": "#808080", "fontWeight": "bold", "formatter": "{c}%"}}]
+});
+window.addEventListener('resize', function(){ chart.resize(); });
+</script>
+</body>
+</html>
