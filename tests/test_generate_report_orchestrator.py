@@ -183,11 +183,51 @@ class GenerateReportOrchestratorTests(unittest.TestCase):
                 "indicator_id": "foo",
                 "chart_type": "single_line",
                 "data_source_type": "derived",
+                "slide_order": 1,
+                "categories": ["x"],
             }
         ]), patch.object(generate_report.excel_reader, "read_styles_from_profile", return_value={"colors": {}, "global": {}}):
             result = generate_report.validate_config(excel_path="fake.xlsx", profile_path="config/profiles/monthly_report_v1.yaml")
         self.assertFalse(result["ok"])
         self.assertTrue(any("build_foo_pivot" in e for e in result["errors"]))
+
+    def test_validate_config_reports_schema_missing_required_fields(self):
+        with patch.object(generate_report.excel_reader, "read_meta_from_profile", return_value=[
+            {
+                "indicator_id": "x",
+                "data_source_type": "single",
+                # missing chart_type / slide_order / categories
+            }
+        ]), patch.object(generate_report.excel_reader, "read_styles_from_profile", return_value={"colors": {}, "global": {}}):
+            result = generate_report.validate_config(excel_path="fake.xlsx", profile_path="config/profiles/monthly_report_v1.yaml")
+        self.assertFalse(result["ok"])
+        joined = "\n".join(result["errors"])
+        self.assertIn("chart_type", joined)
+        self.assertIn("slide_order", joined)
+        self.assertIn("categories", joined)
+
+    def test_main_uses_registered_builder_for_derived(self):
+        derived_meta = {
+            "indicator_id": "foo",
+            "slide_order": 1,
+            "chart_title": "Derived",
+            "report_month": "2026-02",
+            "data_source_type": "derived",
+            "chart_type": "single_line",
+            "categories": ["x"],
+        }
+        with patch.object(generate_report.excel_reader, "read_meta", return_value=[derived_meta]), \
+             patch.object(generate_report.excel_reader, "read_styles", return_value={"colors": {}, "global": {}}), \
+             patch.object(generate_report.data_processor, "get_indicator_builder") as get_builder, \
+             patch.object(generate_report.analyzer, "analyze", return_value=["line1"]), \
+             patch.object(generate_report.chart_renderer, "render", return_value=Path("chart.png")), \
+             patch.object(generate_report.html_generator, "generate", return_value=Path("out.html")), \
+             patch.object(generate_report.ppt_generator, "create_presentation", return_value=MagicMock()), \
+             patch.object(generate_report.ppt_generator, "add_slide"), \
+             patch.object(generate_report.ppt_generator, "save", return_value=Path("out.pptx")):
+            get_builder.return_value = lambda excel, meta: "pivot_df"
+            generate_report.main(excel_path="fake.xlsx", output_path="out.pptx")
+        get_builder.assert_called_once_with("foo")
 
     def test_main_can_emit_manifest(self):
         meta_keep = {

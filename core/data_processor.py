@@ -779,3 +779,33 @@ def build_jingzhun_conversion_overall_pivot(excel_path: str, meta: dict) -> pd.D
 def build_jingzhun_conversion_funnel_pivot(excel_path: str, meta: dict) -> pd.DataFrame:
     full_pivot = build_jingzhun_conversion_pivot(excel_path, meta)
     return full_pivot[['千次可营销-首登率', '首登-授信率']]
+
+
+INDICATOR_BUILDERS = {
+    "cps_all_channel": build_cps_all_channel_pivot,
+    "quality_credit": build_quality_credit_pivot,
+    "channel_overview_tencent_cost": build_channel_overview_tencent_cost_pivot,
+    "channel_overview_tencent_quality": build_channel_overview_tencent_quality_pivot,
+    "channel_overview_douyin_cost": build_channel_overview_douyin_cost_pivot,
+    "channel_overview_douyin_quality": build_channel_overview_douyin_quality_pivot,
+    "channel_overview_jingzhun_cost": build_channel_overview_jingzhun_cost_pivot,
+    "channel_overview_jingzhun_quality": build_channel_overview_jingzhun_quality_pivot,
+    "tencent_request": build_tencent_request_pivot,
+    "tencent_win_rate_overall": build_tencent_win_rate_overall_pivot,
+    "tencent_win_rate_grouped": build_tencent_win_rate_grouped_pivot,
+    "tencent_conversion_overall": build_tencent_conversion_overall_pivot,
+    "tencent_conversion_funnel": build_tencent_conversion_funnel_pivot,
+    "douyin_request": build_douyin_request_pivot,
+    "douyin_win_rate_overall": build_douyin_win_rate_overall_pivot,
+    "douyin_win_rate_grouped": build_douyin_win_rate_grouped_pivot,
+    "douyin_conversion_overall": build_douyin_conversion_overall_pivot,
+    "douyin_conversion_funnel": build_douyin_conversion_funnel_pivot,
+    "jingzhun_attack_result": build_jingzhun_attack_result_pivot,
+    "jingzhun_conversion": build_jingzhun_conversion_pivot,
+    "jingzhun_conversion_overall": build_jingzhun_conversion_overall_pivot,
+    "jingzhun_conversion_funnel": build_jingzhun_conversion_funnel_pivot,
+}
+
+
+def get_indicator_builder(indicator_id: str):
+    return INDICATOR_BUILDERS.get(indicator_id)

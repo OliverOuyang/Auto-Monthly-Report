@@ -11,6 +11,7 @@ from pathlib import Path
 import sys
 
 from core import analyzer, chart_renderer, data_processor, excel_reader, html_generator, ppt_generator
+from core.profile_schema import validate_meta_list
 
 
 def _resolve_output_dirs(
@@ -128,17 +129,15 @@ def validate_config(excel_path: str, profile_path: str | None = None) -> dict:
         errors.append("No indicators found in config.")
         return {"ok": False, "errors": errors, "warnings": warnings, "indicator_count": 0}
 
-    required_fields = ["indicator_id", "chart_type"]
+    errors.extend(validate_meta_list(meta_list))
     for idx, meta in enumerate(meta_list, start=1):
-        missing = [f for f in required_fields if not meta.get(f)]
-        if missing:
-            errors.append(f"Row {idx}: missing required fields: {', '.join(missing)}")
+        if any(f"Row {idx}:" in e for e in errors):
             continue
 
         indicator_id = str(meta["indicator_id"])
         if meta.get("data_source_type", "single") == "derived":
             builder_name = f"build_{indicator_id}_pivot"
-            if getattr(data_processor, builder_name, None) is None:
+            if data_processor.get_indicator_builder(indicator_id) is None:
                 errors.append(f"Derived builder not found: {builder_name}")
 
     if profile_path:
@@ -255,7 +254,7 @@ def main(
 
         if data_source_type == "derived":
             builder_name = f"build_{indicator_id}_pivot"
-            builder = getattr(data_processor, builder_name, None)
+            builder = data_processor.get_indicator_builder(indicator_id)
             if builder is None:
                 raise ValueError(f"Derived builder not found: {builder_name}")
             pivot = builder(excel_path, meta)
