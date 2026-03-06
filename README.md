@@ -34,6 +34,12 @@ python generate_report.py run \
 python scripts/run_report.py --excel "<excel路径>" --profile config/profiles/monthly_report_v2_full.yaml
 ```
 
+### 5. 轻量交互页（本地任务面板）
+```bash
+python scripts/task_panel.py --host 127.0.0.1 --port 8765
+```
+浏览器访问 `http://127.0.0.1:8765`。
+
 默认输出结构：
 1. `export/runs/<run_id>/ppt/report.pptx`
 2. `export/runs/<run_id>/html/月报汇总浏览.html`
